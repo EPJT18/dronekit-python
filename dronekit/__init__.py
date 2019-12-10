@@ -1121,7 +1121,7 @@ class Vehicle(HasObservers):
         self._ready_attrs = {'commands'}
 
         # Default parameters when calling wait_ready() or wait_ready(True).
-        self._default_ready_attrs = ['gps_0', 'armed', 'mode', 'attitude']
+        self._default_ready_attrs = ['parameters', 'gps_0', 'armed', 'mode', 'attitude']
 
         @self.on_attribute('*')
         def listener(_, name, value):
@@ -1546,7 +1546,6 @@ class Vehicle(HasObservers):
 
         @self.on_message(['WAYPOINT_COUNT', 'MISSION_COUNT'])
         def listener(self, name, msg):
-            self._logger.debug("------------------------------RECEIVE --- " + str(msg))
             if not self._wp_loaded:
                 self._wploader.clear()
                 self._wploader.expected_count = msg.count
@@ -1559,7 +1558,6 @@ class Vehicle(HasObservers):
 
         @self.on_message(['WAYPOINT', 'MISSION_ITEM'])
         def listener(self, name, msg):
-            self._logger.debug("------------------------------RECEIVE MISSION ITEM --- " + str(msg))
             if not self._wp_loaded:
                 if msg.seq == 0:
                     if not (msg.x == 0 and msg.y == 0 and msg.z == 0):
@@ -1575,7 +1573,6 @@ class Vehicle(HasObservers):
                     self._wploader.add(msg)
 
                     if msg.seq + 1 < self._wploader.expected_count:
-                        self._logger.debug("------------------------------SEND REQUEST   --- " + str(msg.seq))
                         self._master.waypoint_request_send(msg.seq + 1)
                     else:
                         self._wp_loaded = True
@@ -1584,11 +1581,9 @@ class Vehicle(HasObservers):
         # Waypoint send to master
         @self.on_message(['WAYPOINT_REQUEST', 'MISSION_REQUEST'])
         def listener(self, name, msg):
-            self._logger.debug("RECEIVE MISSION REQUEST --- " + str(msg))
             if self._wp_uploaded is not None:
                 wp = self._wploader.wp(msg.seq)
                 handler.fix_targets(wp)
-                self._logger.debug("SEND ITEM  --- " + str(wp))
                 self._master.mav.send(wp)
                 self._wp_uploaded[msg.seq] = True
 
@@ -1601,52 +1596,57 @@ class Vehicle(HasObservers):
 
         self._params_count = -1
         self._params_set = []
-        self._params_list = []
-        self._params_downloaded_list = []
-
-        self._params_loaded = True
+        self._params_loaded = False
         self._params_start = False
         self._params_map = {}
         self._params_last = monotonic.monotonic()  # Last new param.
         self._params_duration = start_duration
         self._parameters = Parameters(self)
 
-        # @handler.forward_loop
-        # def listener(_):
-        #     # Check the time duration for last "new" params exceeds watchdog.
-        #     if not self._params_start:
-        #         return
+        @handler.forward_loop
+        def listener(_):
+            # Check the time duration for last "new" params exceeds watchdog.
+            if not self._params_start:
+                return
 
-        #     if not self._params_loaded and all(x is not None for x in self._params_set):
-        #         self._params_loaded = True
-        #         self.notify_attribute_listeners('parameters', self.parameters)
+            if not self._params_loaded and all(x is not None for x in self._params_set):
+                self._params_loaded = True
+                self.notify_attribute_listeners('parameters', self.parameters)
 
-        #     if not self._params_loaded and monotonic.monotonic() - self._params_last > self._params_duration:
-        #         c = 0
-        #         for i, v in enumerate(self._params_set):
-        #             if v is None:
-        #                 self._master.mav.param_request_read_send(0, 0, b'', i)
-        #                 c += 1
-        #                 if c > 50:
-        #                     break
-        #         self._params_duration = repeat_duration
-        #         self._params_last = monotonic.monotonic()
+            if not self._params_loaded and monotonic.monotonic() - self._params_last > self._params_duration:
+                c = 0
+                for i, v in enumerate(self._params_set):
+                    if v is None:
+                        self._master.mav.param_request_read_send(0, 0, b'', i)
+                        c += 1
+                        if c > 50:
+                            break
+                self._params_duration = repeat_duration
+                self._params_last = monotonic.monotonic()
 
         @self.on_message(['PARAM_VALUE'])
         def listener(self, name, msg):
             # If we discover a new param count, assume we
             # are receiving a new param set.
-            try:
-                if str(msg.param_id) in self._params_list:
-                    #self._logger.info("Parameter Received - Saved: " + msg.param_id + " -- " + str(msg))
-                    #self._params_set[msg.param_index] = msg
-                    self._params_map[msg.param_id] = msg.param_value
-                    self._parameters.notify_attribute_listeners(msg.param_id, msg.param_value,cache=True)
-                    self._params_downloaded_list.append(msg.param_id)
-                else:
-                    pass
-                    #self._logger.info("Parameter Received - Ignored: " + msg.param_id + " -- " + str(msg))
+            if self._params_count != msg.param_count:
+                self._params_loaded = False
+                self._params_start = True
+                self._params_count = msg.param_count
+                self._params_set = [None] * msg.param_count
 
+            # Attempt to set the params. We throw an error
+            # if the index is out of range of the count or
+            # we lack a param_id.
+            try:
+                if msg.param_index < msg.param_count and msg:
+                    if self._params_set[msg.param_index] is None:
+                        self._params_last = monotonic.monotonic()
+                        self._params_duration = start_duration
+                    self._params_set[msg.param_index] = msg
+
+                self._params_map[msg.param_id] = msg.param_value
+                self._parameters.notify_attribute_listeners(msg.param_id, msg.param_value,
+                                                            cache=True)
             except:
                 import traceback
                 traceback.print_exc()
@@ -1659,7 +1659,7 @@ class Vehicle(HasObservers):
         self._heartbeat_timeout = False
 
         self._heartbeat_warning = 5
-        self._heartbeat_error = 60
+        self._heartbeat_error = 30
         self._heartbeat_system = None
 
         @handler.forward_loop
@@ -1739,22 +1739,6 @@ class Vehicle(HasObservers):
         """
         return self._last_heartbeat
 
-    def getParameters(self, paramRequestList):
-        self._params_set = [None] * len(paramRequestList)
-        self._params_list = paramRequestList
-        self._logger.info("Downloading Parameters: " + ', '.join(paramRequestList))
-        
-        for param in paramRequestList:     # First Example
-            i = 0
-            fetched = False
-            while (i < 5 and not fetched):
-                self._master.param_fetch_one(param)
-                time.sleep(0.5)
-                i += 1
-                if param in self._params_downloaded_list:
-                    fetched = True
-        return
-        
     def on_message(self, name):
         """
         Decorator for message listener callback functions.
@@ -2740,14 +2724,14 @@ class Vehicle(HasObservers):
 
         self.add_message_listener('HEARTBEAT', self.send_capabilities_request)
 
-        # # Ensure initial parameter download has started.
-        # while True:
-        #     # This fn actually rate limits itself to every 2s.
-        #     # Just retry with persistence to get our first param stream.
-        #     self._master.param_fetch_all()
-        #     time.sleep(0.1)
-        #     if self._params_count > -1:
-        #         break
+        # Ensure initial parameter download has started.
+        while True:
+            # This fn actually rate limits itself to every 2s.
+            # Just retry with persistence to get our first param stream.
+            self._master.param_fetch_all()
+            time.sleep(0.1)
+            if self._params_count > -1:
+                break
 
     def send_capabilties_request(self, vehicle, name, m):
         '''An alias for send_capabilities_request.
@@ -2799,13 +2783,7 @@ class Vehicle(HasObservers):
         :param Boolean raise_exception: If ``True`` the method will raise an exception on timeout,
             otherwise the method will return ``False``. The default is ``True`` (raise exception).
         """
-        
-        #for key, value in kwargs.items():
-        #    self._logger.info('Vehicle wait_ready - ' + str(key) + ": " + str(value))
-
         timeout = kwargs.get('timeout', 30)
-
-        #self._logger.info("Connect Wait timeout: " + str(timeout))
         raise_exception = kwargs.get('raise_exception', True)
 
         # Vehicle defaults for wait_ready(True) or wait_ready()
@@ -3170,7 +3148,7 @@ class Parameters(collections.MutableMapping, HasObservers):
 
     def __getitem__(self, name):
         name = name.upper()
-        #self.wait_ready()
+        self.wait_ready()
         return self._vehicle._params_map[name]
 
     def __setitem__(self, name, value):
@@ -3225,11 +3203,6 @@ class Parameters(collections.MutableMapping, HasObservers):
         """
         Block the calling thread until parameters have been downloaded
         """
-
-        #for key, value in kwargs.items():
-        #    self._logger.info('Parameters wait_ready - **kwargs' + str(key) + ": " + str(value))
-
-
         self._vehicle.wait_ready('parameters', **kwargs)
 
     def add_attribute_listener(self, attr_name, *args, **kwargs):
@@ -3428,35 +3401,12 @@ class CommandSequence(object):
         self._vehicle._master.waypoint_request_list_send()
         # BIG FIXME - wait for full wpt download before allowing any of the accessors to work
 
-
-
-    def restart_download(self):
-        '''
-        This restarts the download from the last known index if it missed a command
-        '''
-        #Pause and check count not changing:
-        #logging.info("DOWNLOAD RESTARTED as " + str(self._vehicle._wploader.count()))
-
-        initialCount = self._vehicle._wploader.count()
-        time.sleep(1.5) #Possible error point. 1.5 based on the mavlink default timeout.
-        if (initialCount == self._vehicle._wploader.count()):
-            logging.info("Re Requesting Waypoint " + str(initialCount))
-            self._vehicle._master.waypoint_request_send(initialCount)
-            return True
-        else:
-            logging.info("Download Still going " + str(self._vehicle._wploader.count()) + " / " + str(self._vehicle._wploader.expected_count))
-            return False
-
     def wait_ready(self, **kwargs):
         """
         Block the calling thread until waypoints have been downloaded.
 
         This can be called after :py:func:`download()` to block the thread until the asynchronous download is complete.
         """
-
-        #for key, value in kwargs.items():
-        #    logging.debug('Command Sequence wait_ready - **kwargs' + str(key) + ": " + str(value))
-
         return self._vehicle.wait_ready('commands', **kwargs)
 
     def clear(self):
