@@ -43,7 +43,7 @@ import monotonic
 from past.builtins import basestring
 
 from pymavlink import mavutil, mavwp
-from pymavlink.dialects.v10 import ardupilotmega
+from pymavlink.dialects.v10 import ardupilotmega, swoop
 
 from dronekit.util import ErrprinterHandler
 
@@ -263,6 +263,62 @@ class Rangefinder(object):
 
     def __str__(self):
         return "Rangefinder: distance={}, voltage={}".format(self.distance, self.voltage)
+
+
+
+
+class VFRHUD(object):
+    def __init__(self,climb):
+        self.climb = climb
+
+class WindDetails(object):
+    def __init__(self, wind):
+        self.windDetails = wind
+
+class GPSRaw(object):
+    def __init__(self, track):
+        self.track = track
+
+class SensorOffsets(object):
+    def __init__(self, temp):
+        self.pixhawk_temp = temp
+
+class BatteryStatus(object):
+    def __init__(self, level):
+        self.battery2_level = level
+
+class Battery2(object):
+    def __init__(self, voltage, current):
+        self.battery2_voltage = voltage
+        self.battery2_current = current
+
+
+
+
+class SwoopArming(object):
+
+    def __init__(self, arming_status, arming_check_flags):
+        self.swoop_armable = arming_status
+        self.swoop_arming_check_flags = arming_check_flags
+    
+class SwoopInFlightFlags(object):
+
+    def __init__(self, inflightFlags, maximimIntensity, flag_intesities, flag_details):
+
+        self.swoop_flags = inflightFlags
+        self.swoop_max_intensity = maximimIntensity
+        self.swoop_flag_intensities = flag_intesities
+        self.swoop_flag_details = flag_details
+
+
+
+class SwoopFlightStatus(object):
+
+    def __init__(self, flightStatus):
+
+        self.swoop_status = flightStatus
+
+
 
 
 class Version(object):
@@ -1109,6 +1165,78 @@ class Vehicle(HasObservers):
             self._rngfnd_voltage = m.voltage
             self.notify_attribute_listeners('rangefinder', self.rangefinder)
 
+        self.climb = None
+
+        @self.on_message('VFR_HUD')
+        def listener(self, name, m):
+            self.climb = m.climb
+        
+
+        
+        
+        self.windDetails = []
+        @self.on_message('WIND')
+        def listener(self, name, m):
+            self.windDetails = [m.direction, m.speed* 1.94384, m.speed_z* 1.94384]
+
+        self.track = None
+        @self.on_message('GPS_RAW_INT')
+        def listener(self, name, m):
+            self.track = m.cog/100
+
+        self.pixhawktemp = None
+
+        @self.on_message('SENSOR_OFFSETS')
+        def listener(self, name, m):
+            self.pixhawktemp = m.raw_temp
+
+        self.battery2_level = None
+
+        @self.on_message('BATTERY_STATUS')
+        def listener(self, name, m):
+            self.battery2_level = m.battery_remaining
+
+        self.battery2_voltage = None
+        self.battery2_current = None
+
+        @self.on_message('BATTERY2')
+        def listener(self, name, m):
+            self.battery2_voltage = m.voltage/100
+            self.battery2_current = m.current_battery
+
+        
+   
+    
+
+
+        self.swoop_armable = None
+        self.swoop_arming_check_flags = []
+
+        @self.on_message('SWOOP_ARMING_FLAGS')
+        def listener(self, name, m):
+            self.swoop_armable = m.armingCheck <1   
+            self.swoop_arming_check_flags = [int(digit) for digit in '{:016b}'.format(m.armingCheckFlags1)] + [int(digit) for digit in '{:016b}'.format(m.armingCheckFlags2)] + [int(digit) for digit in '{:016b}'.format(m.armingCheckFlags3)]
+                    
+
+        self.swoop_flags =None
+        self.swoop_max_intensity = None
+        self.swoop_flag_intensities = []
+        self.swoop_flag_details = []
+        @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
+        def listener(self, name, m):
+            self.swoop_flags = [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
+            self.swoop_max_intensity = m.maximumIntensity
+            self.swoop_flag_intensities = [m.hoverAssistIntensity,m.emergencyLandIntensity,m.gpsIntensity,m.vibrationIntensity,m.hoverMotorIntensity,m.forwardMotorIntensity,m.lidarIntensity,m.hoverBatteryIntensity,m.forwardBatteryIntensity,m.altitudeIntensity,m.windIntensity,m.hoverAttitudeIntensity,m.landingIntensity,m.aerodynamicIntensity,m.airspeedIntensity,m.servoIntensity]
+            self.swoop_flag_details = [m.hoverAssistIntensity,m.emergencyLandIntensity,m.gpsIntensity,m.vibrationIntensity,m.hoverMotorIntensity,m.forwardMotorIntensity,m.lidarIntensity,m.hoverBatteryIntensity,m.forwardBatteryIntensity,m.altitudeIntensity,m.windIntensity,m.hoverAttitudeIntensity,m.landingIntensity,m.aerodynamicIntensity,m.airspeedIntensity,m.servoIntensity]
+           
+        self.swoop_status = None
+        @self.on_message('SWOOP_STATUS')
+        def listener(self, name, m):
+            self.swoop_status = m.flightStatus
+
+
+
+
         self._mount_pitch = None
         self._mount_yaw = None
         self._mount_roll = None
@@ -1709,6 +1837,63 @@ class Vehicle(HasObservers):
         Rangefinder distance and voltage values (:py:class:`Rangefinder`).
         """
         return Rangefinder(self._rngfnd_distance, self._rngfnd_voltage)
+
+    @property 
+    
+    def vfrhud(self):
+        
+        return VFRHUD(self.climb)
+
+    @property 
+    
+    def winddetails(self):
+        
+        return WindDEtails(self.windDetails)
+
+    @property 
+    
+    def gpsraw(self):
+        
+        return GPSRaw(self.track)
+
+    @property
+
+    def sensorsoffsets(self):
+
+        return SensorOffsets(self.pixhawktemp)
+
+    @property
+
+    def batterystatus(self):
+
+        return BatteryStatus(self.battery2_level)
+
+    @property
+
+    def battery2(self):
+
+        return Battery2(self.battery2_voltage,self.battery2_current)
+
+
+    @property
+
+    def swooparming(self):
+
+        return SwoopArming(self.swoop_armable, self.swoop_arming_check_flags)
+    
+    @property
+
+    def swoopinflightflags(self):
+       
+
+        return SwoopInFlightFlags( self.swoop_flags, self.swoop_max_intensity, self.swoop_flag_intensities, self.swoop_flag_details)
+
+
+    @property
+
+    def swoopstatus(self):
+
+        return SwoopFlightStatus( self.swoop_status)
 
     @property
     def velocity(self):
