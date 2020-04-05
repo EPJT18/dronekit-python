@@ -1257,6 +1257,9 @@ class Vehicle(HasObservers):
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
             droneready = {}
+            droneready["common"] = []
+            droneready["irregular"] = []
+
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
                 self.swoop_arming_check_flags1 = None
@@ -1268,20 +1271,20 @@ class Vehicle(HasObservers):
                 self.swoop_arming_check_flags2 = '{:016b}'.format(m.armingCheckFlags2)
                 self.swoop_arming_check_flags3 = '{:016b}'.format(m.armingCheckFlags3)
                 
-            armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
-            armingCheckFlags2 = detail_lookup('armingCheckFlags2',m.armingCheckFlags2)
-            
-            if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
-                droneready["irregular"] = armingCheckFlags1
-                droneready["irregular"].append(armingCheckFlags2)
-            elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
-                droneready["irregular"] = armingCheckFlags1
-            elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
-                droneready["irregular"] = armingCheckFlags2
-
-            armingCheckFlags3 = detail_lookup('armingCheckFlags3',m.armingCheckFlags3)
-            if (len(armingCheckFlags3) > 0):
-                droneready["common"] = armingCheckFlags3
+                armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
+                armingCheckFlags2 = detail_lookup('armingCheckFlags2',m.armingCheckFlags2)
+                
+                if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
+                    droneready["irregular"] = armingCheckFlags1
+                    droneready["irregular"].append(armingCheckFlags2)
+                elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
+                    droneready["irregular"] = armingCheckFlags1
+                elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
+                    droneready["irregular"] = armingCheckFlags2
+                
+                armingCheckFlags3 = detail_lookup('armingCheckFlags3',m.armingCheckFlags3)
+                if (len(armingCheckFlags3) > 0):
+                    droneready["common"] = armingCheckFlags3
             
             self.swoop_droneready = droneready
 
