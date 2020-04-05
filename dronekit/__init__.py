@@ -55,22 +55,22 @@ DetailLookup = {}
 #[lidarIntensity', 'hoverBatteryIntensity', 'forwardBatteryIntensity', 'altitudeIntensity', 'windIntensity', 'hoverAttitudeIntensity', 'landingIntensity', 'aerodynamicIntensity', 'airspeedIntensity', 'servoIntensity', 'hoverAssistDetail', 'emergencyLandDetail', 'gpsDetail', 'vibrationDetail', 'hoverMotorDetail', 'forwardMotorDetail', 'lidarDetail', 'hoverBatteryDetail', 'forwardBatteryDetail', 'altitudeDetail', 'windDetail', 'hoverAttitudeDetail', 'landingDetail', 'aerodynamicDetail', 'airspeedDetail', 'servoDetail']
 
 
-FlagLookup = {"hoverAssist":"Hover Assit","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover Motors","forwardMotor":"Forward Motors","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Attitude","wind":"Wind","hoverAttitude":"Hover Attitude","landing":"Landing","aerodynamic":"Aerodynamic","airspeed":"Airspeed","servo":"Servo"}
-DetailLookup["armingCheckFlags1"] = ["Saftey Switch","Barometer unhealthy","CAN bus unhealthy","Gyros not calibrated","Gyros inconsistent","Proximity","Accelerometer not calibrated","Accelerometer inconsistent","Lidar unhealthy","Compass not calibrated","Compass offset","Battery Voltage","Autopilot Error","Motors Stopped","GPS Blending","Autopilot Parameters"]
-DetailLookup["armingCheckFlags2"] = ["Airspeed 1 unhealthy","Airspeed 2 unhealthy","Airspeed 3 unhealthy","Airspeed 4 unhealthy","Quadplan not running","Battery Problem","Logging Failure","No SD Card","Transmitter Problem","No Mission Loaded","Mission Elements Missing"]
-DetailLookup["armingCheckFlags3"] = ["Position Estimator Unhealthy","GPS Poor Position","GPS Health","Gyro Health","Accelerometer Health","Compass Health","High Magnetic Field","Compass Inconsitent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
-DetailLookup["hoverAssist"] = ["Altitude","Speed","Attitude"]
-DetailLookup["emergencyLand"] = ["Long Timeout","Counter Timeout"]
-DetailLookup["gps"] = ["Good (1)","Degraded (1)","Significantly Degraded (1)","Failed (1)","Good (2)","Degraded (2)","Significantly Degraded (2)","Failed (2)"]
-DetailLookup["hoverMotor"] = ["1 Failure","2 Failure","3 Failure","4 Failure","Oscillations","Offset","Output Saturation","High Power"]
-DetailLookup["forwardMotor"] = ["1 Failure","2 Failure","Output Saturation","High Power"]
-DetailLookup["lidar"] = ["Range","Failure"]
-DetailLookup["forwardBattery"] = ["Endurance","Failure Detected"]
-DetailLookup["hoverBattery"] = ["Endurance","Failure Detected"]
+FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control"}
+DetailLookup["armingCheckFlags1"] = ["Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error"]
+DetailLookup["armingCheckFlags2"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission"]
+DetailLookup["armingCheckFlags3"] = ["Attitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
+DetailLookup["hoverAssist"] = ["Altitude Low","Speed Low","Unusual Attitude"]
+DetailLookup["emergencyLand"] = ["Long Hover Assist Activation","Numerous Hover Assist Activations"]
+DetailLookup["gps"] = ["#1 Good","#1 Degraded","#1 Significantly Degraded","#1 Failed","#2 Good","#2 Degraded","#2 Significantly Degraded","#2 Failed"]
+DetailLookup["hoverMotor"] = ["#1 Failure","#2 Failure","#3 Failure","#4 Failure","Oscillations","Offset","Output Saturation","High Power"]
+DetailLookup["forwardMotor"] = ["#1 Failure","#2 Failure","Output Saturation","High Power"]
+DetailLookup["lidar"] = ["Terrain Separation","Failure"]
+DetailLookup["forwardBattery"] = ["< 10% remaining","Failure Detected"]
+DetailLookup["hoverBattery"] = ["< 10% remaining","Failure Detected"]
 DetailLookup["altitude"] = ["High","Low"]
-DetailLookup["landing"] = ["High G's","Poor Attitude"]
-DetailLookup["aerodynamic"] = ["Asymetric Drag","High Drag","ESC Temperature"]
-DetailLookup["airspeed"] = ["Low","High","Sensor 1","Sensor 2","Sensor 3","Sensor 4"]
+DetailLookup["landing"] = ["Hard Landing","Unusual Attitude"]
+DetailLookup["aerodynamic"] = ["Assymetric Drag","High Drag","ESC Temp High"]
+DetailLookup["airspeed"] = ["Low","High","#1 Fail","#2 Fail","#2 Fail","#4 Fail"]
 DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","Aileron Failure","Rudder Offset","Rudder Failure"]
 
 class APIException(Exception):
