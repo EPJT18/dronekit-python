@@ -38,6 +38,7 @@ import logging
 import math
 import struct
 import time
+from enum import Enum
 
 import monotonic
 from past.builtins import basestring
@@ -47,6 +48,30 @@ from pymavlink.dialects.v10 import ardupilotmega, swoop
 
 from dronekit.util import ErrprinterHandler
 
+
+DetailLookup = {}
+
+
+#[lidarIntensity', 'hoverBatteryIntensity', 'forwardBatteryIntensity', 'altitudeIntensity', 'windIntensity', 'hoverAttitudeIntensity', 'landingIntensity', 'aerodynamicIntensity', 'airspeedIntensity', 'servoIntensity', 'hoverAssistDetail', 'emergencyLandDetail', 'gpsDetail', 'vibrationDetail', 'hoverMotorDetail', 'forwardMotorDetail', 'lidarDetail', 'hoverBatteryDetail', 'forwardBatteryDetail', 'altitudeDetail', 'windDetail', 'hoverAttitudeDetail', 'landingDetail', 'aerodynamicDetail', 'airspeedDetail', 'servoDetail']
+
+
+FlagLookup = {"hoverAssist":"Hover Assit","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover Motors","forwardMotor":"Forward Motors","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Attitude","wind":"Wind","hoverAttitude":"Hover Attitude","landing":"Landing","aerodynamic":"Aerodynamic","airspeed":"Airspeed","servo":"Servo"}
+DetailLookup["armingCheckFlags1"] = ["Saftey Switch","Barometer unhealthy","CAN bus unhealthy","Gyros not calibrated","Gyros inconsistent","Proximity","Accelerometer not calibrated","Accelerometer inconsistent","Lidar unhealthy","Compass not calibrated","Compass offset","Battery Voltage","Autopilot Error","Motors Stopped","GPS Blending","Autopilot Parameters"]
+DetailLookup["armingCheckFlags2"] = ["Airspeed 1 unhealthy","Airspeed 2 unhealthy","Airspeed 3 unhealthy","Airspeed 4 unhealthy","Quadplan not running","Battery Problem","Logging Failure","No SD Card","Transmitter Problem","No Mission Loaded","Mission Elements Missing"]
+DetailLookup["armingCheckFlags3"] = ["Position Estimator Unhealthy","GPS Poor Position","GPS Health","Gyro Health","Accelerometer Health","Compass Health","High Magnetic Field","Compass Inconsitent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
+DetailLookup["hoverAssist"] = ["Altitude","Speed","Attitude"]
+DetailLookup["emergencyLand"] = ["Long Timeout","Counter Timeout"]
+DetailLookup["gps"] = ["Good (1)","Degraded (1)","Significantly Degraded (1)","Failed (1)","Good (2)","Degraded (2)","Significantly Degraded (2)","Failed (2)"]
+DetailLookup["hoverMotor"] = ["1 Failure","2 Failure","3 Failure","4 Failure","Oscillations","Offset","Output Saturation","High Power"]
+DetailLookup["forwardMotor"] = ["1 Failure","2 Failure","Output Saturation","High Power"]
+DetailLookup["lidar"] = ["Range","Failure"]
+DetailLookup["forwardBattery"] = ["Endurance","Failure Detected"]
+DetailLookup["hoverBattery"] = ["Endurance","Failure Detected"]
+DetailLookup["altitude"] = ["High","Low"]
+DetailLookup["landing"] = ["High G's","Poor Attitude"]
+DetailLookup["aerodynamic"] = ["Asymetric Drag","High Drag","ESC Temperature"]
+DetailLookup["airspeed"] = ["Low","High","Sensor 1","Sensor 2","Sensor 3","Sensor 4"]
+DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","Aileron Failure","Rudder Offset","Rudder Failure"]
 
 class APIException(Exception):
     """
@@ -121,6 +146,7 @@ class LocationGlobal(object):
         # This is for backward compatibility.
         self.local_frame = None
         self.global_frame = None
+
 
     def __str__(self):
         return "LocationGlobal:lat=%s,lon=%s,alt=%s" % (self.lat, self.lon, self.alt)
@@ -293,14 +319,12 @@ class Battery2(object):
         self.battery2_current = current
 
 
-
-
 class SwoopArming(object):
-
     def __init__(self, arming_status, arming_check_flags):
         self.swoop_armable = arming_status
         self.swoop_arming_check_flags = arming_check_flags
     
+
 class SwoopInFlightFlags(object):
 
     def __init__(self, inflightFlags, maximimIntensity, flag_intesities, flag_details):
@@ -1114,7 +1138,7 @@ class Vehicle(HasObservers):
         self._vz = None
 
         @self.on_message('STATUSTEXT')
-        def statustext_listener(self, name, m):
+        def listener_STATUSTEXT(self, name, m):
             # Log the STATUSTEXT on the autopilot logger, with the correct severity
             self._autopilot_logger.log(
                 msg=m.text.strip(),
@@ -1122,7 +1146,7 @@ class Vehicle(HasObservers):
             )
 
         @self.on_message('GLOBAL_POSITION_INT')
-        def listener(self, name, m):
+        def listener_GLOBAL_POSITION_INT(self, name, m):
             (self._vx, self._vy, self._vz) = (m.vx / 100.0, m.vy / 100.0, m.vz / 100.0)
             self.notify_attribute_listeners('velocity', self.velocity)
 
@@ -1134,7 +1158,7 @@ class Vehicle(HasObservers):
         self._rollspeed = None
 
         @self.on_message('ATTITUDE')
-        def listener(self, name, m):
+        def listener_ATTITUDE(self, name, m):
             self._pitch = m.pitch
             self._yaw = m.yaw
             self._roll = m.roll
@@ -1168,72 +1192,188 @@ class Vehicle(HasObservers):
         self.climb = None
 
         @self.on_message('VFR_HUD')
-        def listener(self, name, m):
-            self.climb = m.climb
-        
-
-        
+        def listener_VFR_HUD(self, name, m):
+            self.climb = round(m.climb)
         
         self.windDetails = []
         @self.on_message('WIND')
-        def listener(self, name, m):
-            self.windDetails = [m.direction, m.speed* 1.94384, m.speed_z* 1.94384]
+        def listener_WIND(self, name, m):
+            self.windDetails = [round(m.direction), round(m.speed* 1.94384,1), round(m.speed_z* 1.94384,1)]
 
         self.track = None
         @self.on_message('GPS_RAW_INT')
-        def listener(self, name, m):
+        def listener_GPS_RAW_INT(self, name, m):
             self.track = m.cog/100
 
         self.pixhawktemp = None
 
         @self.on_message('SENSOR_OFFSETS')
-        def listener(self, name, m):
-            self.pixhawktemp = m.raw_temp
+        def listener_SENSOR_OFFSETS(self, name, m):
+            self.pixhawktemp = m.raw_temp / 100
 
         self.battery2_level = None
 
         @self.on_message('BATTERY_STATUS')
-        def listener(self, name, m):
+        def listener_BATTERY_STATUS(self, name, m):
             self.battery2_level = m.battery_remaining
 
         self.battery2_voltage = None
         self.battery2_current = None
 
         @self.on_message('BATTERY2')
-        def listener(self, name, m):
+        def listener_BATTERY2(self, name, m):
             self.battery2_voltage = m.voltage/100
             self.battery2_current = m.current_battery
-
-        
-   
-    
 
 
         self.swoop_armable = None
         self.swoop_arming_check_flags = []
 
+
+        # @self.on_message('SWOOP_ENERGY')
+        # def listener_SWOOP_ENERGY(self, name, m):
+        #     logging.error(str(m))
+
+        # @self.on_message('SWOOP_ARMING_CHECKS_PASSED')
+        # def listener_SWOOP_ARMING_CHECKS_PASSED(self, name, m):
+        #     logging.error(str(m))
+
+        # @self.on_message('SWOOP_BATTERY_HEALTH')
+        # def listener_SWOOP_BATTERY_HEALTH(self, name, m):
+        #     logging.error(str(m))
+
+
+        # @self.on_message('SWOOP_BATTERY_HEALTH')
+        # def listener_SWOOP_BATTERY_HEALTH(self, name, m):
+        #     logging.error(str(m))
+
+
+        # @self.on_message('SWOOP_ENERGY')
+        # def listener_SWOOP_ENERGY(self, name, m):
+        #     logging.error(str(m))
+
+
+
         @self.on_message('SWOOP_ARMING_FLAGS')
-        def listener(self, name, m):
-            self.swoop_armable = m.armingCheck <1   
-            self.swoop_arming_check_flags = [int(digit) for digit in '{:016b}'.format(m.armingCheckFlags1)] + [int(digit) for digit in '{:016b}'.format(m.armingCheckFlags2)] + [int(digit) for digit in '{:016b}'.format(m.armingCheckFlags3)]
-                    
+        def listener_SWOOP_ARMING_FLAGS(self, name, m):
+            droneready = {}
+            if (m.armingCheckStatus > 0):
+                droneready["ready"] = True
+                self.swoop_arming_check_flags1 = None
+                self.swoop_arming_check_flags2 = None
+                self.swoop_arming_check_flags2 = None
+            else:
+                droneready["ready"] = False
+                self.swoop_arming_check_flags1 = '{:016b}'.format(m.armingCheckFlags1)
+                self.swoop_arming_check_flags2 = '{:016b}'.format(m.armingCheckFlags2)
+                self.swoop_arming_check_flags3 = '{:016b}'.format(m.armingCheckFlags3)
+                
+            armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
+            armingCheckFlags2 = detail_lookup('armingCheckFlags2',m.armingCheckFlags2)
+            
+            if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
+                droneready["irregular"] = armingCheckFlags1
+                droneready["irregular"].append(armingCheckFlags2)
+            elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
+                droneready["irregular"] = armingCheckFlags1
+            elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
+                droneready["irregular"] = armingCheckFlags2
+
+            armingCheckFlags3 = detail_lookup('armingCheckFlags3',m.armingCheckFlags3)
+            if (len(armingCheckFlags3) > 0):
+                droneready["common"] = armingCheckFlags3
+            
+            self.swoop_droneready = droneready
+
+
 
         self.swoop_flags =None
-        self.swoop_max_intensity = None
-        self.swoop_flag_intensities = []
-        self.swoop_flag_details = []
+        self.swoop_flags_id = None
+        
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
-        def listener(self, name, m):
-            self.swoop_flags = [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
-            self.swoop_max_intensity = m.maximumIntensity
-            self.swoop_flag_intensities = [m.hoverAssistIntensity,m.emergencyLandIntensity,m.gpsIntensity,m.vibrationIntensity,m.hoverMotorIntensity,m.forwardMotorIntensity,m.lidarIntensity,m.hoverBatteryIntensity,m.forwardBatteryIntensity,m.altitudeIntensity,m.windIntensity,m.hoverAttitudeIntensity,m.landingIntensity,m.aerodynamicIntensity,m.airspeedIntensity,m.servoIntensity]
-            self.swoop_flag_details = [m.hoverAssistIntensity,m.emergencyLandIntensity,m.gpsIntensity,m.vibrationIntensity,m.hoverMotorIntensity,m.forwardMotorIntensity,m.lidarIntensity,m.hoverBatteryIntensity,m.forwardBatteryIntensity,m.altitudeIntensity,m.windIntensity,m.hoverAttitudeIntensity,m.landingIntensity,m.aerodynamicIntensity,m.airspeedIntensity,m.servoIntensity]
-           
-        self.swoop_status = None
-        @self.on_message('SWOOP_STATUS')
-        def listener(self, name, m):
-            self.swoop_status = m.flightStatus
+        def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):            
+            flags = {}
+            flags["Flags"] = []
 
+            fields = m.get_fieldnames()
+            #logging.info(fields)
+
+            i = 0
+            while i < len(fields):
+                if (fields[i] == "maximumIntensity"):
+                    flags["maxIntensity"] = getattr(m,fields[i])
+                elif (fields[i] == "inflightFlags"):
+                    self.swoop_flags_id = '{:016b}'.format(m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
+                elif (fields[i].endswith("Intensity")):
+                    #logging.info("Intensity:" + fields[i])
+                    if getattr(m,fields[i]) > 0:
+                        flag = {}
+                        flag["Type"] = FlagLookup[fields[i].replace("Intensity", "")]
+                        flag["Intensity"] = getattr(m,fields[i])
+
+                        detailValue = getattr(m,fields[i].replace("Intensity", "Detail"))
+                        if detailValue > 0:
+                            flag["DetailID"] = detailValue
+                            flag["Detail"] = detail_lookup(fields[i].replace("Intensity", ""),detailValue)
+
+                        flags["Flags"].append(flag)
+
+                i += 1
+            self.swoop_flags = flags
+
+        def detail_lookup(lookupIdentifier,value):
+            len(DetailLookup[lookupIdentifier])
+            lookup = []
+            i = len(DetailLookup[lookupIdentifier])
+
+            while i > 0:
+
+                if (value / 2**(i-1)) >= 1:
+                    value = value - (2**(i-1))
+                    lookup.append(DetailLookup[lookupIdentifier][i - 1])
+                i -= 1
+
+            return lookup
+
+
+#{message:SWOOP_ARMING_FLAGS,value:SWOOP_ARMING_FLAGS {armingCheckStatus : 0, armingCheckFlags1 : 0, armingCheckFlags2 : 0, armingCheckFlags3 : 1}}
+#{message:SWOOP_STATUS,value:SWOOP_STATUS {flightStatus : 0, waypointType : 0, nextWaypointType : 0}}
+#{message:SWOOP_ENERGY,value:SWOOP_ENERGY {ForwardEndurance : 3516, ForwardHealth : 1, ForwardWHrPortionRemaining : 84, HoverEndurance : 0, HoverHealth : 0, HoverWHrPortionRemaining : 0, ForwardTimeToNextLanding : 0, ForwardTimeToEndOfMission : 0, HoverTimeToNextLanding : 0, HoverTimeToEndOfMission : 0}}
+
+
+        self.flightStatus = None
+        self.waypointType = None
+        self.nextWaypointType = None
+        self.waypointJumper = 0
+        @self.on_message('SWOOP_STATUS')
+        def listener_SWOOP_STATUS(self, name, m):
+            self.flightStatus = m.flightStatus
+            self.waypointType = m.waypointType
+            self.nextWaypointType = m.nextWaypointType
+            self.waypointJumper = m.waypointJumper
+
+        self.ForwardEndurance = None
+        self.ForwardWHrPortionRemaining = None
+        self.ForwardHealth = None
+        self.HoverEndurance = None
+        self.HoverHealth = None
+        self.HoverWHrPortionRemaining = None
+
+        self.etr = {}
+        @self.on_message('SWOOP_ENERGY')
+        def listener_SWOOP_ENERGY(self, name, m):
+            self.ForwardEndurance = m.ForwardEndurance
+            self.ForwardWHrPortionRemaining = m.ForwardWHrPortionRemaining
+            self.ForwardHealth = m.ForwardEndurance
+            
+            self.HoverEndurance = m.HoverEndurance
+            self.HoverHealth = m.HoverHealth
+            self.HoverWHrPortionRemaining = m.HoverWHrPortionRemaining
+            
+            self.etr["NextLanding"] = m.ForwardTimeToNextLanding
+            self.etr["EndOfMission"] = m.ForwardTimeToEndOfMission
+            self.etr["NextLanding"] = m.HoverTimeToNextLanding
+            self.etr["EndOfMission"] = m.HoverTimeToEndOfMission
 
 
 
@@ -1839,16 +1979,66 @@ class Vehicle(HasObservers):
         return Rangefinder(self._rngfnd_distance, self._rngfnd_voltage)
 
     @property 
-    
     def vfrhud(self):
         
         return VFRHUD(self.climb)
 
     @property 
-    
     def winddetails(self):
+        return self.windDetails
+
+    @property 
+    def batteryhv(self):
+        if self.battery2_voltage is not None:
+            battery = {}
+            battery['voltage'] = round(self.battery2_voltage,2)
+            battery['current'] = round(self.battery2_current)
+            battery['level'] = self.battery2_level
+
+            battery['endurance'] = self.HoverEndurance
+            battery['remaining'] = self.HoverWHrPortionRemaining
+            battery['health'] = self.HoverHealth
+            return battery
+        else:
+            return None
+
+    @property 
+    def batteryfw(self):
+        battery = {}
+        battery['voltage'] = round(self.battery.voltage,2)
+        if self.battery.current is not None:
+            battery['current'] = round(self.battery.current)
+        if self.battery.level is not None:
+            battery['level'] = self.battery.level
+
+        battery['endurance'] = self.ForwardEndurance
+        battery['remaining'] = self.ForwardWHrPortionRemaining
+        battery['health'] = self.ForwardHealth
+        return battery
+
+    @property 
+    def speed(self):
+        speed = {}
+        speed['ground'] = round(self.groundspeed * 1.94384) # Converts to knot
+        speed['air'] = round(self.airspeed * 1.94384)       # Converts to knot
+        speed['climb'] = self.climb
+        return speed
+
+
+    @property 
+    def position(self):
+        position = {}
+        position['lat'] =  self.location.global_frame.lat
+        position['lon'] =  self.location.global_frame.lon
+        position['alt'] =  round(self.location.global_frame.alt * 3.28084)
+        if self.rangefinder is not None and self.rangefinder.distance is not None:
+            position['lidar'] = round(self.rangefinder.distance * 3.28084)
         
-        return WindDEtails(self.windDetails)
+        #if self.track is not None:
+        #    position['track'] = round(self.track)
+        position['heading'] = self.heading
+        return position
+
 
     @property 
     
@@ -1884,13 +2074,9 @@ class Vehicle(HasObservers):
     @property
 
     def swoopinflightflags(self):
-       
-
         return SwoopInFlightFlags( self.swoop_flags, self.swoop_max_intensity, self.swoop_flag_intensities, self.swoop_flag_details)
 
-
     @property
-
     def swoopstatus(self):
 
         return SwoopFlightStatus( self.swoop_status)
