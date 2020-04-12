@@ -780,155 +780,6 @@ class HasObservers(object):
         return decorator
 
 
-class ChannelsOverride(dict):
-    """
-    A dictionary class for managing Vehicle channel overrides.
-
-    Channels can be read, written, or cleared by index or using a dictionary syntax.
-    To clear a value, set it to ``None`` or use ``del`` on the item.
-
-    An object of this type is returned by :py:attr:`Vehicle.channels.overrides <Channels.overrides>`.
-
-    For more information and examples see :ref:`example_channel_overrides`.
-    """
-
-    def __init__(self, vehicle):
-        self._vehicle = vehicle
-        self._count = 8  # Fixed by MAVLink
-        self._active = True
-
-    def __getitem__(self, key):
-        return dict.__getitem__(self, str(key))
-
-    def __setitem__(self, key, value):
-        if not (0 < int(key) <= self._count):
-            raise KeyError('Invalid channel index %s' % key)
-        if not value:
-            try:
-                dict.__delitem__(self, str(key))
-            except:
-                pass
-        else:
-            dict.__setitem__(self, str(key), value)
-        self._send()
-
-    def __delitem__(self, key):
-        dict.__delitem__(self, str(key))
-        self._send()
-
-    def __len__(self):
-        return self._count
-
-    def _send(self):
-        if self._active:
-            overrides = [0] * 8
-            for k, v in self.items():
-                overrides[int(k) - 1] = v
-            self._vehicle._master.mav.rc_channels_override_send(0, 0, *overrides)
-
-
-class Channels(dict):
-    """
-    A dictionary class for managing RC channel information associated with a :py:class:`Vehicle`.
-
-    An object of this type is accessed through :py:attr:`Vehicle.channels`. This object also stores
-    the current vehicle channel overrides through its :py:attr:`overrides` attribute.
-
-    For more information and examples see :ref:`example_channel_overrides`.
-    """
-
-    def __init__(self, vehicle, count):
-        self._vehicle = vehicle
-        self._count = count
-        self._overrides = ChannelsOverride(vehicle)
-
-        # populate readback
-        self._readonly = False
-        for k in range(0, count):
-            self[k + 1] = None
-        self._readonly = True
-
-    @property
-    def count(self):
-        """
-        The number of channels defined in the dictionary (currently 8).
-        """
-        return self._count
-
-    def __getitem__(self, key):
-        return dict.__getitem__(self, str(key))
-
-    def __setitem__(self, key, value):
-        if self._readonly:
-            raise TypeError('__setitem__ is not supported on Channels object')
-        return dict.__setitem__(self, str(key), value)
-
-    def __len__(self):
-        return self._count
-
-    def _update_channel(self, channel, value):
-        # If we have channels on different ports, we expand the Channels
-        # object to support them.
-        channel = int(channel)
-        self._readonly = False
-        self[channel] = value
-        self._readonly = True
-        self._count = max(self._count, channel)
-
-    @property
-    def overrides(self):
-        """
-        Attribute to read, set and clear channel overrides (also known as "rc overrides")
-        associated with a :py:class:`Vehicle` (via :py:class:`Vehicle.channels`). This is an
-        object of type :py:class:`ChannelsOverride`.
-
-        For more information and examples see :ref:`example_channel_overrides`.
-
-        To set channel overrides:
-
-        .. code:: python
-
-            # Set and clear overrids using dictionary syntax (clear by setting override to none)
-            vehicle.channels.overrides = {'5':None, '6':None,'3':500}
-
-            # You can also set and clear overrides using indexing syntax
-            vehicle.channels.overrides['2'] = 200
-            vehicle.channels.overrides['2'] = None
-
-            # Clear using 'del'
-            del vehicle.channels.overrides['3']
-
-            # Clear all overrides by setting an empty dictionary
-            vehicle.channels.overrides = {}
-
-        Read the channel overrides either as a dictionary or by index. Note that you'll get
-        a ``KeyError`` exception if you read a channel override that has not been set.
-
-        .. code:: python
-
-            # Get all channel overrides
-            print " Channel overrides: %s" % vehicle.channels.overrides
-            # Print just one channel override
-            print " Ch2 override: %s" % vehicle.channels.overrides['2']
-        """
-        return self._overrides
-
-    @overrides.setter
-    def overrides(self, newch):
-        self._overrides._active = False
-        self._overrides.clear()
-        for k, v in newch.items():
-            if v:
-                self._overrides[str(k)] = v
-            else:
-                try:
-                    del self._overrides[str(k)]
-                except:
-                    pass
-        self._overrides._active = True
-        self._overrides._send()
-
-
 class Locations(HasObservers):
     """
     An object for holding location information in global, global relative and local frames.
@@ -1253,7 +1104,7 @@ class Vehicle(HasObservers):
         #     logging.error(str(m))
 
 
-
+        self.droneready = False
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
             droneready = {}
@@ -1262,11 +1113,13 @@ class Vehicle(HasObservers):
 
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
+                self.droneready = True
                 self.swoop_arming_check_flags1 = None
                 self.swoop_arming_check_flags2 = None
                 self.swoop_arming_check_flags2 = None
             else:
                 droneready["ready"] = False
+                self.droneready = False
                 self.swoop_arming_check_flags1 = '{:016b}'.format(m.armingCheckFlags1)
                 self.swoop_arming_check_flags2 = '{:016b}'.format(m.armingCheckFlags2)
                 self.swoop_arming_check_flags3 = '{:016b}'.format(m.armingCheckFlags3)
