@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     LongDescription = f.read()
 
 setuptools.setup(
-    name='swoop_dronekit',
+    name='dronekit',
     zip_safe=True,
     version=version,
     description='Developer Tools for Drones.',
