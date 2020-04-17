@@ -1168,6 +1168,19 @@ class Vehicle(HasObservers):
             self._rollspeed = m.rollspeed
             self.notify_attribute_listeners('attitude', self.attitude)
 
+
+        self.trueAirspeed = None
+        self.trueTrimSpeed = None
+        self.trueAirspeedMultiplier = None
+
+        @self.on_message('SWOOP_AIRSPEED')
+        def listener(self, name, m):
+            self.trueAirspeed = m.trueAirspeed / 100 #convert from cm/s to m/s
+            self.trueTrimSpeed = m.trueTrimSpeed / 100 #convert from cm/s to m/s
+            self.trueAirspeedMultiplier = m.trueAirspeed
+
+
+
         self._heading = None
         self._airspeed = None
         self._groundspeed = None
@@ -1644,6 +1657,8 @@ class Vehicle(HasObservers):
                         self._logger.warning('Link timeout, no heartbeat in last %s seconds' % self._heartbeat_warning)
                         self._heartbeat_timeout = True
 
+        self._lastHeartbeatTime = None
+        
         @self.on_message(['HEARTBEAT'])
         def listener(self, name, msg):
             # ignore groundstations
@@ -1651,6 +1666,7 @@ class Vehicle(HasObservers):
                 return
             self._heartbeat_system = msg.get_srcSystem()
             self._heartbeat_lastreceived = monotonic.monotonic()
+            self._lastHeartbeatTime = int(round(time.time() * 1000))
             if self._heartbeat_timeout:
                 self._logger.info('...link restored.')
             self._heartbeat_timeout = False
@@ -2023,6 +2039,16 @@ class Vehicle(HasObservers):
         return battery
 
     @property 
+    def speedtas(self):
+        speedtas = {}
+        speedtas['TAS'] = self.trueAirspeed
+        speedtas['forwardSetTAS'] = self.trueTrimSpeed
+        speedtas['airspeedMultiplierTAS'] = self.trueAirspeedMultiplier
+        speedtas['hoverSetClimbSpeed'] = self.parameters['Q_WP_SPEED_UP'] / 100
+        speedtas['hoverSetDescendSpeed'] = self.parameters['Q_WP_SPEED_DN'] / 100
+        return speedtas
+
+    @property 
     def speed(self):
         speed = {}
         speed['ground'] = round(self.groundspeed * 1.94384) # Converts to knot
@@ -2201,6 +2227,11 @@ class Vehicle(HasObservers):
         Current heading in degrees - 0..360, where North = 0 (``int``).
         """
         return self._heading
+
+    @property
+    def lastHeartbeatTime(self):
+        return self._lastHeartbeatTime
+
 
     @property
     def groundspeed(self):
