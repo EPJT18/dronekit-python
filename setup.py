@@ -1,13 +1,13 @@
 import setuptools
 import os
 
-version = '2.9.2'
+version = '2.9.2.s1'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     LongDescription = f.read()
 
 setuptools.setup(
-    name='dronekit',
+    name='swoop_dronekit',
     zip_safe=True,
     version=version,
     description='Developer Tools for Drones.',
@@ -16,7 +16,6 @@ setuptools.setup(
     url='https://github.com/dronekit/dronekit-python',
     author='3D Robotics',
     install_requires=[
-        'pymavlink>=2.2.20',
         'monotonic>=1.3',
     ],
     author_email='tim@3drobotics.com, kevinh@geeksville.com',
