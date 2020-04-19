@@ -1379,11 +1379,12 @@ class Vehicle(HasObservers):
         self.HoverWHrPortionRemaining = None
 
         self.etr = {}
+
         @self.on_message('SWOOP_ENERGY')
         def listener_SWOOP_ENERGY(self, name, m):
             self.ForwardEndurance = m.ForwardEndurance
             self.ForwardWHrPortionRemaining = m.ForwardWHrPortionRemaining
-            self.ForwardHealth = m.ForwardEndurance
+            self.ForwardHealth = m.ForwardHealth
             
             self.HoverEndurance = m.HoverEndurance
             self.HoverHealth = m.HoverHealth
@@ -2022,7 +2023,7 @@ class Vehicle(HasObservers):
             battery['health'] = self.HoverHealth
             return battery
         else:
-            return None
+            return {}
 
     @property 
     def batteryfw(self):
@@ -2065,9 +2066,8 @@ class Vehicle(HasObservers):
         position['alt'] =  round(self.location.global_frame.alt * 3.28084)
         if self.rangefinder is not None and self.rangefinder.distance is not None:
             position['lidar'] = round(self.rangefinder.distance * 3.28084)
-        
-        #if self.track is not None:
-        #    position['track'] = round(self.track)
+
+        position['track'] = round(self.track)
         position['heading'] = self.heading
         return position
 
