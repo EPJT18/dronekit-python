@@ -1238,7 +1238,7 @@ class Vehicle(HasObservers):
 
         @self.on_message('BATTERY2')
         def listener_BATTERY2(self, name, m):
-            self.battery2_voltage = m.voltage/100
+            self.battery2_voltage = m.voltage/1000
             self.battery2_current = m.current_battery
 
 
