@@ -1413,11 +1413,17 @@ class Vehicle(HasObservers):
         self._capabilities = None
         self._raw_version = None
         self._autopilot_version_msg_count = 0
+        self._autopilotVersion = {}
 
         @self.on_message('AUTOPILOT_VERSION')
         def listener(vehicle, name, m):
             self._capabilities = m.capabilities
             self._raw_version = m.flight_sw_version
+            self.autopilotVersion = {}
+            self._autopilotVersion['flight'] = ''.join(chr(i) for i in m.flight_custom_version).replace('\u0000','0')
+            self._autopilotVersion['middleware'] = ''.join(chr(i) for i in m.middleware_custom_version)
+            self._autopilotVersion['os'] = ''.join(chr(i) for i in m.os_custom_version)
+
             self._autopilot_version_msg_count += 1
             if self._capabilities != 0 or self._autopilot_version_msg_count > 5:
                 # ArduPilot <3.4 fails to send capabilities correctly
@@ -2027,6 +2033,13 @@ class Vehicle(HasObservers):
         else:
             return {}
 
+
+    @property 
+    def autopilotversion(self):
+        autopilotVersion = self._autopilotVersion
+        autopilotVersion["name"]= str(self.version)
+        return autopilotVersion
+        
     @property 
     def batteryfw(self):
         battery = {}
