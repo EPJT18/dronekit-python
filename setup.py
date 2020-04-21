@@ -1,7 +1,7 @@
 import setuptools
 import os
 
-version = '3.5.0'
+version = '3.5.2'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     LongDescription = f.read()
@@ -17,6 +17,7 @@ setuptools.setup(
     author='3D Robotics',
     install_requires=[
         'monotonic>=1.3',
+        'swoop-MAVProxy==3.5.1',
     ],
     author_email='tim@3drobotics.com, kevinh@geeksville.com',
     classifiers=[
