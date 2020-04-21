@@ -3160,7 +3160,7 @@ class Parameters(collections.MutableMapping, HasObservers):
 
     def __setitem__(self, name, value):
         name = name.upper()
-        self.wait_ready()
+        #self.wait_ready()
         self.set(name, value)
 
     def __delitem__(self, name):
@@ -3179,8 +3179,8 @@ class Parameters(collections.MutableMapping, HasObservers):
         return self._vehicle._params_map.get(name, None)
 
     def set(self, name, value, retries=3, wait_ready=False):
-        if wait_ready:
-            self.wait_ready()
+        #if wait_ready:
+        #    self.wait_ready()
 
         # TODO dumbly reimplement this using timeout loops
         # because we should actually be awaiting an ACK of PARAM_VALUE
