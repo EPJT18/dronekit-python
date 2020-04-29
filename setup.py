@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     LongDescription = f.read()
 
 setuptools.setup(
-    name='swoop-dronekit',
+    name='dronekit',
     zip_safe=True,
     version=version,
     description='Developer Tools for Drones.',
@@ -16,8 +16,7 @@ setuptools.setup(
     url='https://github.com/dronekit/dronekit-python',
     author='3D Robotics',
     install_requires=[
-        'monotonic>=1.3',
-        'swoop-MAVProxy==3.5.1',
+        'monotonic>=1.3'
     ],
     author_email='tim@3drobotics.com, kevinh@geeksville.com',
     classifiers=[
