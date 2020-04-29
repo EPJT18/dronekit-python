@@ -73,8 +73,7 @@ DetailLookup["aerodynamic"] = ["Assymetric Drag","High Drag","ESC Temp High"]
 DetailLookup["airspeed"] = ["Low","High","#1 Fail","#2 Fail","#3 Fail","#4 Fail"]
 DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","Aileron Failure","Rudder Offset","Rudder Failure"]
 DetailLookup["targetSearchFailed"] = ["Landing Aborted", "GPS Landing", "Contingency Divert"]
-DetailLookup["adsbFlags"] = ["Aircraft Detected", "Threat Detected"]
-
+DetailLookup["adsbFlags"] = ["Aircraft Detected", "Threat Detected", "Avoiding Threat"]
 
 class APIException(Exception):
     """
