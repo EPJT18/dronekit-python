@@ -1278,15 +1278,13 @@ class Vehicle(HasObservers):
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
                 self.droneready = True
-                self.swoop_arming_check_flags1 = None
-                self.swoop_arming_check_flags2 = None
-                self.swoop_arming_check_flags2 = None
+                self.swoop_arming_check_irregular = None
+                self.swoop_arming_check_common = None
             else:
                 droneready["ready"] = False
                 self.droneready = False
-                self.swoop_arming_check_flags1 = '{:016b}'.format(m.armingCheckFlags1)
-                self.swoop_arming_check_flags2 = '{:016b}'.format(m.armingCheckFlags2)
-                self.swoop_arming_check_flags3 = '{:016b}'.format(m.armingCheckFlags3)
+                self.swoop_arming_check_irregular = '{:016b}'.format(m.armingCheckFlags1) + '{:011b}'.format(m.armingCheckFlags2)
+                self.swoop_arming_check_common = '{:011b}'.format(m.armingCheckFlags3)
                 
                 armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
                 armingCheckFlags2 = detail_lookup('armingCheckFlags2',m.armingCheckFlags2)
