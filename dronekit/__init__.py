@@ -1267,7 +1267,8 @@ class Vehicle(HasObservers):
         # def listener_SWOOP_ENERGY(self, name, m):
         #     logging.error(str(m))
 
-
+        self.swoop_arming_check_irregular = '{:027b}'.format()
+        self.swoop_arming_check_common = '{:011b}'.format()
         self.droneready = False
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
@@ -1306,7 +1307,7 @@ class Vehicle(HasObservers):
 
 
         self.swoop_flags =None
-        self.swoop_flags_id = None
+        self.swoop_flags_id = '{:016b}'.format(0)
         
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
         def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):            
