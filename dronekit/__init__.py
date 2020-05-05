@@ -1278,8 +1278,8 @@ class Vehicle(HasObservers):
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
                 self.droneready = True
-                self.swoop_arming_check_irregular = None
-                self.swoop_arming_check_common = None
+                self.swoop_arming_check_irregular = '{:027b}'.format()
+                self.swoop_arming_check_common = '{:011b}'.format()
             else:
                 droneready["ready"] = False
                 self.droneready = False
