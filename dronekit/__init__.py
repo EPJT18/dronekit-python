@@ -1267,8 +1267,8 @@ class Vehicle(HasObservers):
         # def listener_SWOOP_ENERGY(self, name, m):
         #     logging.error(str(m))
 
-        self.swoop_arming_check_irregular = '{:027b}'.format()
-        self.swoop_arming_check_common = '{:011b}'.format()
+        self.swoop_arming_check_irregular = '{:027b}'.format(0)
+        self.swoop_arming_check_common = '{:011b}'.format(0)
         self.droneready = False
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
@@ -1279,8 +1279,8 @@ class Vehicle(HasObservers):
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
                 self.droneready = True
-                self.swoop_arming_check_irregular = '{:027b}'.format()
-                self.swoop_arming_check_common = '{:011b}'.format()
+                self.swoop_arming_check_irregular = '{:027b}'.format(0)
+                self.swoop_arming_check_common = '{:011b}'.format(0)
             else:
                 droneready["ready"] = False
                 self.droneready = False
