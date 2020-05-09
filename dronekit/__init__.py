@@ -1364,12 +1364,14 @@ class Vehicle(HasObservers):
         self.waypointType = None
         self.nextWaypointType = None
         self.waypointJumper = 0
+        self.nextWaypoint = 0
         @self.on_message('SWOOP_STATUS')
         def listener_SWOOP_STATUS(self, name, m):
             self.flightStatus = m.flightStatus
             self.waypointType = m.waypointType
             self.nextWaypointType = m.nextWaypointType
             self.waypointJumper = m.waypointJumper
+            self.nextWaypoint = m.nextWaypoint
 
         self.ForwardEndurance = None
         self.ForwardWHrPortionRemaining = None
