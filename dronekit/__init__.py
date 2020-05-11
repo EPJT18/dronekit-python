@@ -1306,8 +1306,10 @@ class Vehicle(HasObservers):
 
 
 
+
         self.swoop_flags =None
         self.swoop_flags_id = '{:016b}'.format(0)
+        self.autopilotTriggerContingency = False
         
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
         def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):            
@@ -1316,6 +1318,7 @@ class Vehicle(HasObservers):
 
             fields = m.get_fieldnames()
             #logging.info(fields)
+            self.autopilotTriggerContingency = False
 
             i = 0
             while i < len(fields):
@@ -1329,6 +1332,10 @@ class Vehicle(HasObservers):
                         flag = {}
                         flag["Type"] = FlagLookup[fields[i].replace("Intensity", "")]
                         flag["Intensity"] = getattr(m,fields[i])
+
+                        if (fields[i].replace("Intensity", "") != "adsbFlags"):
+                            if flag["Intensity"] >= 3:
+                                self.autopilotTriggerContingency = True
 
                         detailValue = getattr(m,fields[i].replace("Intensity", "Detail"))
                         if detailValue > 0:
