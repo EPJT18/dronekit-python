@@ -1386,12 +1386,16 @@ class Vehicle(HasObservers):
         self.HoverEndurance = None
         self.HoverHealth = None
         self.HoverWHrPortionRemaining = None
+        self.ForwardEnduranceReserve = None
 
         self.etr = {}
 
         @self.on_message('SWOOP_ENERGY')
         def listener_SWOOP_ENERGY(self, name, m):
-            self.ForwardEndurance = m.ForwardEndurance
+            fixedFuelReserve = 18.8
+            self.ForwardEnduranceReserve = round((m.ForwardEndurance / (m.ForwardWHrPortionRemaining)) * fixedFuelReserve)
+            self.ForwardEndurance = m.ForwardEndurance - self.ForwardEnduranceReserve
+
             self.ForwardWHrPortionRemaining = m.ForwardWHrPortionRemaining
             self.ForwardHealth = m.ForwardHealth
             
@@ -2055,8 +2059,9 @@ class Vehicle(HasObservers):
             battery['current'] = round(self.battery.current)
         if self.battery.level is not None:
             battery['level'] = self.battery.level
-
+            
         battery['endurance'] = self.ForwardEndurance
+        battery['endurancereserve'] = self.ForwardEnduranceReserve
         battery['remaining'] = self.ForwardWHrPortionRemaining
         battery['health'] = self.ForwardHealth
         return battery
