@@ -1393,7 +1393,10 @@ class Vehicle(HasObservers):
         @self.on_message('SWOOP_ENERGY')
         def listener_SWOOP_ENERGY(self, name, m):
             fixedFuelReserve = 18.8
-            self.ForwardEnduranceReserve = round((m.ForwardEndurance / (m.ForwardWHrPortionRemaining)) * fixedFuelReserve)
+            if m.ForwardWHrPortionRemaining == 0:
+                self.ForwardEnduranceReserve = 0
+            else:
+                self.ForwardEnduranceReserve = round((m.ForwardEndurance / (m.ForwardWHrPortionRemaining)) * fixedFuelReserve)
             self.ForwardEndurance = m.ForwardEndurance - self.ForwardEnduranceReserve
 
             self.ForwardWHrPortionRemaining = m.ForwardWHrPortionRemaining
