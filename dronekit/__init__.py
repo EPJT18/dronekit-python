@@ -56,9 +56,8 @@ DetailLookup = {}
 
 
 FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection"}
-DetailLookup["armingCheckFlags1"] = ["Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error"]
-DetailLookup["armingCheckFlags2"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission"]
-DetailLookup["armingCheckFlags3"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
+DetailLookup["armingCheckFlags1"] = ["Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error","Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission"]
+DetailLookup["armingCheckFlagsCommon"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
 DetailLookup["hoverAssist"] = ["Altitude Low","Speed Low","Unusual Attitude"]
 DetailLookup["emergencyLand"] = ["Long Hover Assist Activation","Numerous Hover Assist Activations"]
 DetailLookup["gps"] = ["#1 Good","#1 Degraded","#1 Significantly Degraded","#1 Failed","#2 Good","#2 Degraded","#2 Significantly Degraded","#2 Failed"]
@@ -325,7 +324,7 @@ class SwoopArming(object):
     def __init__(self, arming_status, arming_check_flags):
         self.swoop_armable = arming_status
         self.swoop_arming_check_flags = arming_check_flags
-    
+
 
 class SwoopInFlightFlags(object):
 
@@ -1209,7 +1208,7 @@ class Vehicle(HasObservers):
         @self.on_message('VFR_HUD')
         def listener_VFR_HUD(self, name, m):
             self.climb = round(m.climb)
-        
+
         self.windDetails = []
         @self.on_message('WIND')
         def listener_WIND(self, name, m):
@@ -1284,24 +1283,18 @@ class Vehicle(HasObservers):
             else:
                 droneready["ready"] = False
                 self.droneready = False
-                self.swoop_arming_check_irregular = '{:016b}'.format(m.armingCheckFlags1) + '{:011b}'.format(m.armingCheckFlags2)
-                self.swoop_arming_check_common = '{:011b}'.format(m.armingCheckFlags3)
-                
+                self.swoop_arming_check_irregular = '{:027b}'.format(m.armingCheckFlags1)
+                self.swoop_arming_check_common = '{:011b}'.format(m.armingCheckFlagsCommon)
+
                 armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
-                armingCheckFlags2 = detail_lookup('armingCheckFlags2',m.armingCheckFlags2)
-                
-                if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
+
+                if(len(armingCheckFlags1) > 0):
                     droneready["irregular"] = armingCheckFlags1
-                    droneready["irregular"].append(armingCheckFlags2)
-                elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
-                    droneready["irregular"] = armingCheckFlags1
-                elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
-                    droneready["irregular"] = armingCheckFlags2
-                
-                armingCheckFlags3 = detail_lookup('armingCheckFlags3',m.armingCheckFlags3)
-                if (len(armingCheckFlags3) > 0):
-                    droneready["common"] = armingCheckFlags3
-            
+
+                armingCheckFlagsCommon = detail_lookup('armingCheckFlagsCommon',m.armingCheckFlagsCommon)
+                if (len(armingCheckFlagsCommon) > 0):
+                    droneready["common"] = armingCheckFlagsCommon
+
             self.swoop_droneready = droneready
 
 
@@ -1310,9 +1303,9 @@ class Vehicle(HasObservers):
         self.swoop_flags =None
         self.swoop_flags_id = '{:016b}'.format(0)
         self.autopilotTriggerContingency = False
-        
+
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
-        def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):            
+        def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):
             flags = {}
             flags["Flags"] = []
 
@@ -1362,7 +1355,7 @@ class Vehicle(HasObservers):
             return lookup
 
 
-#{message:SWOOP_ARMING_FLAGS,value:SWOOP_ARMING_FLAGS {armingCheckStatus : 0, armingCheckFlags1 : 0, armingCheckFlags2 : 0, armingCheckFlags3 : 1}}
+#{message:SWOOP_ARMING_FLAGS,value:SWOOP_ARMING_FLAGS {armingCheckStatus : 0, armingCheckFlags1 : 0, armingCheckFlagsCommon : 1}}
 #{message:SWOOP_STATUS,value:SWOOP_STATUS {flightStatus : 0, waypointType : 0, nextWaypointType : 0}}
 #{message:SWOOP_ENERGY,value:SWOOP_ENERGY {ForwardEndurance : 3516, ForwardHealth : 1, ForwardWHrPortionRemaining : 84, HoverEndurance : 0, HoverHealth : 0, HoverWHrPortionRemaining : 0, ForwardTimeToNextLanding : 0, ForwardTimeToEndOfMission : 0, HoverTimeToNextLanding : 0, HoverTimeToEndOfMission : 0}}
 
@@ -1401,11 +1394,11 @@ class Vehicle(HasObservers):
 
             self.ForwardWHrPortionRemaining = m.ForwardWHrPortionRemaining
             self.ForwardHealth = m.ForwardHealth
-            
+
             self.HoverEndurance = m.HoverEndurance
             self.HoverHealth = m.HoverHealth
             self.HoverWHrPortionRemaining = m.HoverWHrPortionRemaining
-            
+
             self.etr["NextLanding"] = m.ForwardTimeToNextLanding
             self.etr["EndOfMission"] = m.ForwardTimeToEndOfMission
             self.etr["NextLanding"] = m.HoverTimeToNextLanding
@@ -1681,7 +1674,7 @@ class Vehicle(HasObservers):
                         self._heartbeat_timeout = True
 
         self._lastHeartbeatTime = None
-        
+
         @self.on_message(['HEARTBEAT'])
         def listener(self, name, msg):
             # ignore groundstations
@@ -1743,7 +1736,7 @@ class Vehicle(HasObservers):
         self._params_set = [None] * len(paramRequestList)
         self._params_list = paramRequestList
         self._logger.info("Downloading Parameters: " + ', '.join(paramRequestList))
-        
+
         for param in paramRequestList:     # First Example
             i = 0
             fetched = False
@@ -1754,7 +1747,7 @@ class Vehicle(HasObservers):
                 if param in self._params_downloaded_list:
                     fetched = True
         return
-        
+
     def on_message(self, name):
         """
         Decorator for message listener callback functions.
@@ -2023,16 +2016,16 @@ class Vehicle(HasObservers):
         """
         return Rangefinder(self._rngfnd_distance, self._rngfnd_voltage)
 
-    @property 
+    @property
     def vfrhud(self):
-        
+
         return VFRHUD(self.climb)
 
-    @property 
+    @property
     def winddetails(self):
         return self.windDetails
 
-    @property 
+    @property
     def batteryhv(self):
         if self.battery2_voltage is not None:
             battery = {}
@@ -2048,13 +2041,13 @@ class Vehicle(HasObservers):
             return {}
 
 
-    @property 
+    @property
     def autopilotversion(self):
         autopilotVersion = self._autopilotVersion
         autopilotVersion["name"]= str(self.version)
         return autopilotVersion
-        
-    @property 
+
+    @property
     def batteryfw(self):
         battery = {}
         battery['voltage'] = round(self.battery.voltage,2)
@@ -2062,14 +2055,14 @@ class Vehicle(HasObservers):
             battery['current'] = round(self.battery.current)
         if self.battery.level is not None:
             battery['level'] = self.battery.level
-            
+
         battery['endurance'] = self.ForwardEndurance
         battery['endurancereserve'] = self.ForwardEnduranceReserve
         battery['remaining'] = self.ForwardWHrPortionRemaining
         battery['health'] = self.ForwardHealth
         return battery
 
-    @property 
+    @property
     def speedtas(self):
         speedtas = {}
         speedtas['TAS'] = self.trueAirspeed
@@ -2079,7 +2072,7 @@ class Vehicle(HasObservers):
         speedtas['hoverSetDescendSpeed'] = self.parameters['Q_WP_SPEED_DN'] / 100
         return speedtas
 
-    @property 
+    @property
     def speed(self):
         speed = {}
         speed['ground'] = round(self.groundspeed * 1.94384) # Converts to knot
@@ -2088,7 +2081,7 @@ class Vehicle(HasObservers):
         return speed
 
 
-    @property 
+    @property
     def position(self):
         position = {}
         position['lat'] =  self.location.global_frame.lat
@@ -2102,10 +2095,10 @@ class Vehicle(HasObservers):
         return position
 
 
-    @property 
-    
+    @property
+
     def gpsraw(self):
-        
+
         return GPSRaw(self.track)
 
     @property
@@ -2132,7 +2125,7 @@ class Vehicle(HasObservers):
     def swooparming(self):
 
         return SwoopArming(self.swoop_armable, self.swoop_arming_check_flags)
-    
+
     @property
 
     def swoopinflightflags(self):
@@ -2799,7 +2792,7 @@ class Vehicle(HasObservers):
         :param Boolean raise_exception: If ``True`` the method will raise an exception on timeout,
             otherwise the method will return ``False``. The default is ``True`` (raise exception).
         """
-        
+
         #for key, value in kwargs.items():
         #    self._logger.info('Vehicle wait_ready - ' + str(key) + ": " + str(value))
 
