@@ -57,7 +57,7 @@ DetailLookup = {}
 
 FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection"}
 DetailLookup["armingCheckFlags1"] = ["Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error","Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission"]
-DetailLookup["armingCheckFlagsCommon"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
+DetailLookup["armingCheckFlagsCommon"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat","Dual GPS Yaw Failure"]
 DetailLookup["hoverAssist"] = ["Altitude Low","Speed Low","Unusual Attitude"]
 DetailLookup["emergencyLand"] = ["Long Hover Assist Activation","Numerous Hover Assist Activations"]
 DetailLookup["gps"] = ["#1 Good","#1 Degraded","#1 Significantly Degraded","#1 Failed","#2 Good","#2 Degraded","#2 Significantly Degraded","#2 Failed"]
@@ -73,6 +73,15 @@ DetailLookup["airspeed"] = ["Low","High","#1 Fail","#2 Fail","#3 Fail","#4 Fail"
 DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","Aileron Failure","Rudder Offset","Rudder Failure"]
 DetailLookup["targetSearchFailed"] = ["Landing Aborted", "GPS Landing", "Contingency Divert"]
 DetailLookup["adsbFlags"] = ["Aircraft Detected", "Threat Detected", "Avoiding Threat"]
+
+def bit_format(length, value):
+    if value.bit_length() > length:
+        extra_bits = value.bit_length() - length
+        logging.error("%d unknown flags were raised. Number of bits incorrect." % extra_bits)
+        while value.bit_length() > length:
+            value &= ~(1 << (value.bit_length()-1))  # remove most significant bit
+    return ('{:0%db}'%length).format(value)
+
 
 class APIException(Exception):
     """
@@ -1266,8 +1275,8 @@ class Vehicle(HasObservers):
         # def listener_SWOOP_ENERGY(self, name, m):
         #     logging.error(str(m))
 
-        self.swoop_arming_check_irregular = '{:027b}'.format(0)
-        self.swoop_arming_check_common = '{:011b}'.format(0)
+        self.swoop_arming_check_irregular = bit_format(length=27, value=0)
+        self.swoop_arming_check_common = bit_format(length=12, value=0)
         self.droneready = False
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
@@ -1278,13 +1287,13 @@ class Vehicle(HasObservers):
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
                 self.droneready = True
-                self.swoop_arming_check_irregular = '{:027b}'.format(0)
-                self.swoop_arming_check_common = '{:011b}'.format(0)
+                self.swoop_arming_check_irregular = bit_format(length=27, value=0)
+                self.swoop_arming_check_common = bit_format(length=12, value=0)
             else:
                 droneready["ready"] = False
                 self.droneready = False
-                self.swoop_arming_check_irregular = '{:027b}'.format(m.armingCheckFlags1)
-                self.swoop_arming_check_common = '{:011b}'.format(m.armingCheckFlagsCommon)
+                self.swoop_arming_check_irregular = bit_format(length=27, value=m.armingCheckFlags1)
+                self.swoop_arming_check_common = bit_format(length=12, value=m.armingCheckFlagsCommon)
 
                 armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
 
@@ -1301,7 +1310,7 @@ class Vehicle(HasObservers):
 
 
         self.swoop_flags =None
-        self.swoop_flags_id = '{:016b}'.format(0)
+        self.swoop_flags_id = bit_format(length=16, value=0)
         self.autopilotTriggerContingency = False
 
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
@@ -1318,7 +1327,7 @@ class Vehicle(HasObservers):
                 if (fields[i] == "maximumIntensity"):
                     flags["maxIntensity"] = getattr(m,fields[i])
                 elif (fields[i] == "inflightFlags"):
-                    self.swoop_flags_id = '{:016b}'.format(m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
+                    self.swoop_flags_id = bitFormat(length=16, value=m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
                 elif (fields[i].endswith("Intensity")):
                     #logging.info("Intensity:" + fields[i])
                     if getattr(m,fields[i]) > 0:
