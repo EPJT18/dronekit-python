@@ -74,10 +74,14 @@ DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","
 DetailLookup["targetSearchFailed"] = ["Landing Aborted", "GPS Landing", "Contingency Divert"]
 DetailLookup["adsbFlags"] = ["Aircraft Detected", "Threat Detected", "Avoiding Threat"]
 
+ARMING_CHECK_IRREGULAR_LENGTH = 27
+ARMING_CHECK_COMMON_LENGTH    = 12
+FLAGS_LENGTH                  = 16
+
 def bit_format(length, value):
     if value.bit_length() > length:
         extra_bits = value.bit_length() - length
-        logging.error("%d unknown flags were raised. Number of bits incorrect." % extra_bits)
+        logging.error("%d unknown flags or details were raised. Number of bits incorrect." % extra_bits)
         while value.bit_length() > length:
             value &= ~(1 << (value.bit_length()-1))  # remove most significant bit
     return ('{:0%db}'%length).format(value)
@@ -1275,8 +1279,8 @@ class Vehicle(HasObservers):
         # def listener_SWOOP_ENERGY(self, name, m):
         #     logging.error(str(m))
 
-        self.swoop_arming_check_irregular = bit_format(length=27, value=0)
-        self.swoop_arming_check_common = bit_format(length=12, value=0)
+        self.swoop_arming_check_irregular = bit_format(length=ARMING_CHECK_IRREGULAR_LENGTH, value=0)
+        self.swoop_arming_check_common = bit_format(length=ARMING_CHECK_COMMON_LENGTH, value=0)
         self.droneready = False
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
@@ -1287,13 +1291,13 @@ class Vehicle(HasObservers):
             if (m.armingCheckStatus > 0):
                 droneready["ready"] = True
                 self.droneready = True
-                self.swoop_arming_check_irregular = bit_format(length=27, value=0)
-                self.swoop_arming_check_common = bit_format(length=12, value=0)
+                self.swoop_arming_check_irregular = bit_format(length=ARMING_CHECK_IRREGULAR_LENGTH, value=0)
+                self.swoop_arming_check_common = bit_format(length=ARMING_CHECK_COMMON_LENGTH, value=0)
             else:
                 droneready["ready"] = False
                 self.droneready = False
-                self.swoop_arming_check_irregular = bit_format(length=27, value=m.armingCheckFlags1)
-                self.swoop_arming_check_common = bit_format(length=12, value=m.armingCheckFlagsCommon)
+                self.swoop_arming_check_irregular = bit_format(length=ARMING_CHECK_IRREGULAR_LENGTH, value=m.armingCheckFlags1)
+                self.swoop_arming_check_common = bit_format(length=ARMING_CHECK_COMMON_LENGTH, value=m.armingCheckFlagsCommon)
 
                 armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
 
@@ -1310,7 +1314,7 @@ class Vehicle(HasObservers):
 
 
         self.swoop_flags =None
-        self.swoop_flags_id = bit_format(length=16, value=0)
+        self.swoop_flags_id = bit_format(length=FLAGS_LENGTH, value=0)
         self.autopilotTriggerContingency = False
 
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
@@ -1327,7 +1331,7 @@ class Vehicle(HasObservers):
                 if (fields[i] == "maximumIntensity"):
                     flags["maxIntensity"] = getattr(m,fields[i])
                 elif (fields[i] == "inflightFlags"):
-                    self.swoop_flags_id = bitFormat(length=16, value=m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
+                    self.swoop_flags_id = bitFormat(length=FLAGS_LENGTH, value=m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
                 elif (fields[i].endswith("Intensity")):
                     #logging.info("Intensity:" + fields[i])
                     if getattr(m,fields[i]) > 0:
