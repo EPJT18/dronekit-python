@@ -1329,7 +1329,7 @@ class Vehicle(HasObservers):
                 if (fields[i] == "maximumIntensity"):
                     flags["maxIntensity"] = getattr(m,fields[i])
                 elif (fields[i] == "inflightFlags"):
-                    self.swoop_flags_id = bitFormat(length=FLAGS_LENGTH, value=m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
+                    self.swoop_flags_id = bit_format(length=FLAGS_LENGTH, value=m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
                 elif (fields[i].endswith("Intensity")):
                     #logging.info("Intensity:" + fields[i])
                     if getattr(m,fields[i]) > 0:
