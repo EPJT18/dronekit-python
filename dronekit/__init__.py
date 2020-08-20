@@ -82,9 +82,7 @@ def bit_format(length, value):
     if value.bit_length() > length:
         extra_bits = value.bit_length() - length
         logging.error("%d unknown flags or details were raised. Number of bits incorrect." % extra_bits)
-        while value.bit_length() > length:
-            value &= ~(1 << (value.bit_length()-1))  # remove most significant bit
-    return ('{:0%db}'%length).format(value)
+    return ('{:0%db}'%length).format(value)[-length:]  # ensure correct number of bits
 
 
 class APIException(Exception):
