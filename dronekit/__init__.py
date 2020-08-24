@@ -1641,17 +1641,25 @@ class Vehicle(HasObservers):
         def listener(self, name, msg):
             # If we discover a new param count, assume we
             # are receiving a new param set.
-            try:
-                if str(msg.param_id) in self._params_list:
-                    #self._logger.info("Parameter Received - Saved: " + msg.param_id + " -- " + str(msg))
-                    #self._params_set[msg.param_index] = msg
-                    self._params_map[msg.param_id] = msg.param_value
-                    self._parameters.notify_attribute_listeners(msg.param_id, msg.param_value,cache=True)
-                    self._params_downloaded_list.append(msg.param_id)
-                else:
-                    pass
-                    #self._logger.info("Parameter Received - Ignored: " + msg.param_id + " -- " + str(msg))
+            if self._params_count != msg.param_count:
+                self._params_loaded = False
+                self._params_start = True
+                self._params_count = msg.param_count
+                self._params_set = [None] * msg.param_count
 
+            # Attempt to set the params. We throw an error
+            # if the index is out of range of the count or
+            # we lack a param_id.
+            try:
+                if msg.param_index < msg.param_count and msg:
+                    if self._params_set[msg.param_index] is None:
+                        self._params_last = monotonic.monotonic()
+                        self._params_duration = start_duration
+                    self._params_set[msg.param_index] = msg
+
+                self._params_map[msg.param_id] = msg.param_value
+                self._parameters.notify_attribute_listeners(msg.param_id, msg.param_value,
+                                                            cache=True)
             except:
                 import traceback
                 traceback.print_exc()
