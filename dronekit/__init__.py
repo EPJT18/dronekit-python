@@ -1132,7 +1132,7 @@ class Vehicle(HasObservers):
         self._ready_attrs = {'commands'}
 
         # Default parameters when calling wait_ready() or wait_ready(True).
-        self._default_ready_attrs = ['gps_0', 'armed', 'mode', 'attitude']
+        self._default_ready_attrs = ['parameters', 'gps_0', 'armed', 'mode', 'attitude']
 
         @self.on_attribute('*')
         def listener(_, name, value):
@@ -1609,7 +1609,7 @@ class Vehicle(HasObservers):
         self._params_list = []
         self._params_downloaded_list = []
 
-        self._params_loaded = True
+        self._params_loaded = False
         self._params_start = False
         self._params_map = {}
         self._params_last = monotonic.monotonic()  # Last new param.
@@ -3175,7 +3175,7 @@ class Parameters(collections.MutableMapping, HasObservers):
 
     def __getitem__(self, name):
         name = name.upper()
-        #self.wait_ready()
+        self.wait_ready()
         return self._vehicle._params_map[name]
 
     def __setitem__(self, name, value):
