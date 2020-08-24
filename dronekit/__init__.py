@@ -1616,26 +1616,26 @@ class Vehicle(HasObservers):
         self._params_duration = start_duration
         self._parameters = Parameters(self)
 
-        # @handler.forward_loop
-        # def listener(_):
-        #     # Check the time duration for last "new" params exceeds watchdog.
-        #     if not self._params_start:
-        #         return
+        @handler.forward_loop
+        def listener(_):
+            # Check the time duration for last "new" params exceeds watchdog.
+            if not self._params_start:
+                return
 
-        #     if not self._params_loaded and all(x is not None for x in self._params_set):
-        #         self._params_loaded = True
-        #         self.notify_attribute_listeners('parameters', self.parameters)
+            if not self._params_loaded and all(x is not None for x in self._params_set):
+                self._params_loaded = True
+                self.notify_attribute_listeners('parameters', self.parameters)
 
-        #     if not self._params_loaded and monotonic.monotonic() - self._params_last > self._params_duration:
-        #         c = 0
-        #         for i, v in enumerate(self._params_set):
-        #             if v is None:
-        #                 self._master.mav.param_request_read_send(0, 0, b'', i)
-        #                 c += 1
-        #                 if c > 50:
-        #                     break
-        #         self._params_duration = repeat_duration
-        #         self._params_last = monotonic.monotonic()
+            if not self._params_loaded and monotonic.monotonic() - self._params_last > self._params_duration:
+                c = 0
+                for i, v in enumerate(self._params_set):
+                    if v is None:
+                        self._master.mav.param_request_read_send(0, 0, b'', i)
+                        c += 1
+                        if c > 50:
+                            break
+                self._params_duration = repeat_duration
+                self._params_last = monotonic.monotonic()
 
         @self.on_message(['PARAM_VALUE'])
         def listener(self, name, msg):
@@ -2745,14 +2745,14 @@ class Vehicle(HasObservers):
 
         self.add_message_listener('HEARTBEAT', self.send_capabilities_request)
 
-        # # Ensure initial parameter download has started.
-        # while True:
-        #     # This fn actually rate limits itself to every 2s.
-        #     # Just retry with persistence to get our first param stream.
-        #     self._master.param_fetch_all()
-        #     time.sleep(0.1)
-        #     if self._params_count > -1:
-        #         break
+        # Ensure initial parameter download has started.
+        while True:
+            # This fn actually rate limits itself to every 2s.
+            # Just retry with persistence to get our first param stream.
+            self._master.param_fetch_all()
+            time.sleep(0.1)
+            if self._params_count > -1:
+                break
 
     def send_capabilties_request(self, vehicle, name, m):
         '''An alias for send_capabilities_request.
