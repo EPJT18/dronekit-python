@@ -55,7 +55,7 @@ DetailLookup = {}
 #[lidarIntensity', 'hoverBatteryIntensity', 'forwardBatteryIntensity', 'altitudeIntensity', 'windIntensity', 'hoverAttitudeIntensity', 'landingIntensity', 'aerodynamicIntensity', 'airspeedIntensity', 'servoIntensity', 'hoverAssistDetail', 'emergencyLandDetail', 'gpsDetail', 'vibrationDetail', 'hoverMotorDetail', 'forwardMotorDetail', 'lidarDetail', 'hoverBatteryDetail', 'forwardBatteryDetail', 'altitudeDetail', 'windDetail', 'hoverAttitudeDetail', 'landingDetail', 'aerodynamicDetail', 'airspeedDetail', 'servoDetail']
 
 
-FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection"}
+FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection","yaw":"Yaw Error"}
 DetailLookup["armingCheckFlags1"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission","Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error"]
 DetailLookup["armingCheckFlagsCommon"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat","Dual GPS Yaw Failure"]
 DetailLookup["hoverAssist"] = ["Altitude Low","Speed Low","Unusual Attitude"]
@@ -73,10 +73,11 @@ DetailLookup["airspeed"] = ["Low","High","#1 Fail","#2 Fail","#3 Fail","#4 Fail"
 DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","Aileron Failure","Rudder Offset","Rudder Failure"]
 DetailLookup["targetSearchFailed"] = ["Landing Aborted", "GPS Landing", "Contingency Divert"]
 DetailLookup["adsbFlags"] = ["Aircraft Detected", "Threat Detected", "Avoiding Threat"]
+DetailLookup["yaw"] = ["Dual GPS Failure", "Compass Fallback Not Healthy", "Fallback Active", "Compass Not Healthy", "Compass Inconsistent"]
 
 ARMING_CHECK_IRREGULAR_LENGTH = 27
 ARMING_CHECK_COMMON_LENGTH    = 12
-FLAGS_LENGTH                  = 16
+FLAGS_LENGTH                  = 19
 
 def bit_format(length, value):
     if value.bit_length() > length:
