@@ -56,7 +56,7 @@ DetailLookup = {}
 
 
 FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection","yaw":"Yaw Error","ekf":"EKF","wings":"Wings","tracking":"Tracking Error","precisionLanding":"Precision Landing"}
-DetailLookup["armingCheckFlags1"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission","Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error"]
+DetailLookup["armingCheckFlags1"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission","Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error", "Left Wing Not Connected", "Right Wing Not Connected"]
 DetailLookup["armingCheckFlagsCommon"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat","Dual GPS Yaw Failure"]
 DetailLookup["hoverAssist"] = ["Altitude Low","Speed Low","Unusual Attitude"]
 DetailLookup["emergencyLand"] = ["Long Hover Assist Activation","Numerous Hover Assist Activations"]
@@ -78,7 +78,7 @@ DetailLookup["ekf"] = ["Velocity Unhealthy", "Position Unhealthy", "Altitude Unh
 DetailLookup["wings"] = ["Left Not Connected", "Right Not Connected"]
 DetailLookup["tracking"] = ["Flight Geography Left","Flight Geography Right", "Flight Geography High", "Flight Geography Low", "Contingency Volume Left", "Contingency Volume Right", "Contingency Volume High"]
 DetailLookup["precisionLanding"] = ["Target Not Found", "Using GPS", "Using Next Waypoint"]
-ARMING_CHECK_IRREGULAR_LENGTH = 27
+ARMING_CHECK_IRREGULAR_LENGTH = 29
 ARMING_CHECK_COMMON_LENGTH    = 12
 FLAGS_LENGTH                  = 23
 
