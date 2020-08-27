@@ -1612,6 +1612,7 @@ class Vehicle(HasObservers):
             if not self._params_loaded and all(x is not None for x in self._params_set):
                 self._params_loaded = True
                 self.notify_attribute_listeners('parameters', self.parameters)
+                self._master.mav.request_data_stream_send(0, 0, mavutil.mavlink.MAV_DATA_STREAM_ALL, self._rate, 1)
 
             if not self._params_loaded and monotonic.monotonic() - self._params_last > self._params_duration:
                 c = 0
@@ -1633,6 +1634,8 @@ class Vehicle(HasObservers):
                 self._params_start = True
                 self._params_count = msg.param_count
                 self._params_set = [None] * msg.param_count
+                self._master.mav.request_data_stream_send(0, 0, mavutil.mavlink.MAV_DATA_STREAM_ALL,
+                                            0, 1)
 
             # Attempt to set the params. We throw an error
             # if the index is out of range of the count or
@@ -2717,6 +2720,8 @@ class Vehicle(HasObservers):
             if self._flightmode not in [None, 'INITIALISING', 'MAV']:
                 break
             time.sleep(0.1)
+
+        self._rate = rate
 
         # Initialize data stream.
         if rate is not None:
