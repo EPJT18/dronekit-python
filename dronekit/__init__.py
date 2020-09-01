@@ -55,10 +55,9 @@ DetailLookup = {}
 #[lidarIntensity', 'hoverBatteryIntensity', 'forwardBatteryIntensity', 'altitudeIntensity', 'windIntensity', 'hoverAttitudeIntensity', 'landingIntensity', 'aerodynamicIntensity', 'airspeedIntensity', 'servoIntensity', 'hoverAssistDetail', 'emergencyLandDetail', 'gpsDetail', 'vibrationDetail', 'hoverMotorDetail', 'forwardMotorDetail', 'lidarDetail', 'hoverBatteryDetail', 'forwardBatteryDetail', 'altitudeDetail', 'windDetail', 'hoverAttitudeDetail', 'landingDetail', 'aerodynamicDetail', 'airspeedDetail', 'servoDetail']
 
 
-FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection"}
-DetailLookup["armingCheckFlags1"] = ["Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error"]
-DetailLookup["armingCheckFlags2"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission"]
-DetailLookup["armingCheckFlags3"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat"]
+FlagLookup = {"hoverAssist":"Hover Assist","emergencyLand":"Emergency Land","gps":"GPS","vibration":"Vibration","hoverMotor":"Hover System","forwardMotor":"Forward Motor","lidar":"Lidar","hoverBattery":"Hover Battery","forwardBattery":"Forward Battery","altitude":"Altitude","wind":"Wind","hoverAttitude":"Hover System","landing":"Landing","aerodynamic":"Drag","airspeed":"Airspeed","servo":"Flight Control","targetSearchFailed":"Visual Target","adsbFlags":"ADS-B Detection","yaw":"Yaw Error","ekf":"EKF","wings":"Wings","tracking":"Tracking Error","precisionLanding":"Precision Landing"}
+DetailLookup["armingCheckFlags1"] = ["Airspeed #1 fail","Airspeed #2 fail","Airspeed #3 fail","Airspeed #4 fail","Autopilot software error","Battery Issue","Logging Failure","No SD Card","Transmitter Problem","No mission loaded","Error in mission","Saftey Switch Activated","Barometer Error","Internal Communications Error","Gyro Calibration Error","Gyro Inconsistency","Proximity","Accel Calibration Error","Accel Inconsistency","LIDAR Error","Compass Calibration Error","Compass Offset","Low Autopilot Voltage","Autopilot Error","Motor Emergency Stop","GPS Blending Unhealthy","Autopilot Parameter Error", "Left Wing Not Connected", "Right Wing Not Connected"]
+DetailLookup["armingCheckFlagsCommon"] = ["Altitude Error","GPS Poor Position","GPS Error","Gyro Error","Accel Error","Compass Error","High Magnetic Field","Compass Inconsistent","GPS Positions Different","GPS Inconsistent with Vehicle Estimate","ADSB Threat","Dual GPS Yaw Failure"]
 DetailLookup["hoverAssist"] = ["Altitude Low","Speed Low","Unusual Attitude"]
 DetailLookup["emergencyLand"] = ["Long Hover Assist Activation","Numerous Hover Assist Activations"]
 DetailLookup["gps"] = ["#1 Good","#1 Degraded","#1 Significantly Degraded","#1 Failed","#2 Good","#2 Degraded","#2 Significantly Degraded","#2 Failed"]
@@ -74,6 +73,21 @@ DetailLookup["airspeed"] = ["Low","High","#1 Fail","#2 Fail","#3 Fail","#4 Fail"
 DetailLookup["servo"] = ["Elevator Offset","Elevator Failure","Aileron Offset","Aileron Failure","Rudder Offset","Rudder Failure"]
 DetailLookup["targetSearchFailed"] = ["Landing Aborted", "GPS Landing", "Contingency Divert"]
 DetailLookup["adsbFlags"] = ["Aircraft Detected", "Threat Detected", "Avoiding Threat"]
+DetailLookup["yaw"] = ["Dual GPS Failure", "Compass Fallback Not Healthy", "Fallback Active", "Compass Not Healthy", "Compass Inconsistent"]
+DetailLookup["ekf"] = ["Velocity Unhealthy", "Position Unhealthy", "Altitude Unhealthy", "Yaw Unhealthy", "Terrain Unhealthy", "GPS Timesync Error"]
+DetailLookup["wings"] = ["Left Not Connected", "Right Not Connected"]
+DetailLookup["tracking"] = ["Flight Geography Left","Flight Geography Right", "Flight Geography High", "Flight Geography Low", "Contingency Volume Left", "Contingency Volume Right", "Contingency Volume High"]
+DetailLookup["precisionLanding"] = ["Target Not Found", "Using GPS", "Using Next Waypoint"]
+ARMING_CHECK_IRREGULAR_LENGTH = 29
+ARMING_CHECK_COMMON_LENGTH    = 12
+FLAGS_LENGTH                  = 23
+
+def bit_format(length, value):
+    if value.bit_length() > length:
+        extra_bits = value.bit_length() - length
+        logging.error("%d unknown flags or details were raised. Number of bits incorrect." % extra_bits)
+    return ('{:0%db}'%length).format(value)[-length:]  # ensure correct number of bits
+
 
 class APIException(Exception):
     """
@@ -978,7 +992,7 @@ class Vehicle(HasObservers):
         @self.on_message('VFR_HUD')
         def listener_VFR_HUD(self, name, m):
             self.climb = round(m.climb)
-        
+
         self.windDetails = []
         @self.on_message('WIND')
         def listener_WIND(self, name, m):
@@ -1060,11 +1074,11 @@ class Vehicle(HasObservers):
 
             self.ForwardWHrPortionRemaining = m.ForwardWHrPortionRemaining
             self.ForwardHealth = m.ForwardHealth
-            
+
             self.HoverEndurance = m.HoverEndurance
             self.HoverHealth = m.HoverHealth
             self.HoverWHrPortionRemaining = m.HoverWHrPortionRemaining
-            
+
             self.etr["NextLanding"] = m.ForwardTimeToNextLanding
             self.etr["EndOfMission"] = m.ForwardTimeToEndOfMission
             self.etr["NextLanding"] = m.HoverTimeToNextLanding
@@ -1272,7 +1286,7 @@ class Vehicle(HasObservers):
                         self._heartbeat_timeout = True
 
         self._lastHeartbeatTime = None
-        
+
         @self.on_message(['HEARTBEAT'])
         def listener(self, name, msg):
             # ignore groundstations
@@ -1334,7 +1348,7 @@ class Vehicle(HasObservers):
         self._params_set = [None] * len(paramRequestList)
         self._params_list = paramRequestList
         self._logger.info("Downloading Parameters: " + ', '.join(paramRequestList))
-        
+
         for param in paramRequestList:     # First Example
             i = 0
             fetched = False
@@ -1345,7 +1359,7 @@ class Vehicle(HasObservers):
                 if param in self._params_downloaded_list:
                     fetched = True
         return
-        
+
     def on_message(self, name):
         """
         Decorator for message listener callback functions.
@@ -1577,11 +1591,11 @@ class Vehicle(HasObservers):
     #     return speed
 
 
-    @property 
+    @property
     def winddetails(self):
         return self.windDetails
 
-    @property 
+    @property
     def batteryhv(self):
         if self.battery2_voltage is not None:
             battery = {}
@@ -1597,13 +1611,13 @@ class Vehicle(HasObservers):
             return {}
 
 
-    @property 
+    @property
     def autopilotversion(self):
         autopilotVersion = self._autopilotVersion
         autopilotVersion["name"]= str(self.version)
         return autopilotVersion
-        
-    @property 
+
+    @property
     def batteryfw(self):
         battery = {}
         battery['voltage'] = round(self.battery.voltage,2)
@@ -1611,7 +1625,7 @@ class Vehicle(HasObservers):
             battery['current'] = round(self.battery.current)
         if self.battery.level is not None:
             battery['level'] = self.battery.level
-            
+
         battery['endurance'] = self.ForwardEndurance
         battery['endurancereserve'] = self.ForwardEnduranceReserve
         battery['remaining'] = self.ForwardWHrPortionRemaining
@@ -1921,7 +1935,7 @@ class Vehicle(HasObservers):
         :param Boolean raise_exception: If ``True`` the method will raise an exception on timeout,
             otherwise the method will return ``False``. The default is ``True`` (raise exception).
         """
-        
+
         #for key, value in kwargs.items():
         #    self._logger.info('Vehicle wait_ready - ' + str(key) + ": " + str(value))
 
