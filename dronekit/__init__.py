@@ -139,20 +139,21 @@ class SwoopStatus(object):
 
     An object of this type is returned by :py:attr:`Vehicle.swoopstatus`.
     """
-    def __init__(self, flightStatus, flightState, previousWaypoint,currentWaypoint,nextNavWaypoint,waypointJumper,turnAroundOk,forwardDiversionOk):
-        self.flightStatus = flightStatus
-        self.flightState = flightState
-        self.previousWaypoint = previousWaypoint
-        self.currentWaypoint = currentWaypoint
-        self.nextNavWaypoint = nextNavWaypoint
-        self.waypointJumper = waypointJumper
-        self.turnAroundOk = turnAroundOk
-        self.forwardDiversionOk = forwardDiversionOk
-    
+    def __init__(self, swoopstatus):
+        self.flightStatus = swoopstatus.flightStatus
+        self.navigationState = swoopstatus.navigationState
+        self.previousWaypointType = swoopstatus.previousWaypointType
+        self.currentWaypointType = swoopstatus.currentWaypointType
+        self.nextWaypointType = swoopstatus.nextWaypointType
+        self.previousNavWaypointIndex = swoopstatus.previousNavWaypointIndex
+        self.currentNavWaypointIndex = swoopstatus.currentNavWaypointIndex
+        self.nextNavWaypointIndex = swoopstatus.nextNavWaypointIndex
+        self.waypointJumper = swoopstatus.waypointJumper
+        self.turnAroundOK = swoopstatus.turnAroundOK
+        self.forwardDivertOK = swoopstatus.forwardDivertOK
+        
     def __str__(self):
-        return "Swoop Status: Status={}, State={}, Previous Waypoint={}, Current Waypoint={}, Next Nav Waypoint={}, Jumper={}, Turn Around Ok={}, Forward Diversion Ok={}".format(self.flightStatus, self.flightState,self.previousWaypoint,self.currentWaypoint,self.nextNavWaypoint,self.waypointJumper,self.turnAroundOk ,self.forwardDiversionOk  )
-
-
+        return "Swoop Status: Status={}, State={}, Previous Waypoint:{} Type:{}, Current Waypoint={} Type={}, Next Nav Waypoint={} Type={}, Jumper={}, Turn Around Ok={}, Forward Diversion Ok={}".format(self.flightStatus, self.navigationState, self.previousNavWaypointIndex, self.previousWaypointType, self.currentNavWaypointIndex, self.currentWaypointType, self.nextNavWaypointIndex, self.nextWaypointType, self.waypointJumper, self.turnAroundOK, self.forwardDivertOK  )
 
 
 class Position(object):
@@ -165,14 +166,16 @@ class Position(object):
     def __init__(self, lat, lon, altMeters, lidarMeters,track,heading):
         self.lat = lat
         self.lon = lon
-        self.alt = altMeters * 3.28084
-        self.lidar = lidarMeters * 3.28084
+        self.alt = round(altMeters * 3.28084)
+        self.lidar = round(lidarMeters * 3.28084)
         self.track = track
         self.heading =  heading
 
     def __str__(self):
         return "Swoop Position: lat={}, lon={}, alt={}, lidar={}, track={}, heading={}".format(self.lat, self.lon,self.alt,self.lidar,self.track,self.heading)
 
+    def alt_mtrs(self):
+        return self.alt / 3.28084
 
 class Speed(object):
     """
@@ -181,16 +184,23 @@ class Speed(object):
     An object of this type is returned by :py:attr:`Vehicle.swoopstatus`.
     """
     def __init__(self, groundspeed, airspeed, TAS, TAS_Set, climb):
-        self.groundspeed = groundspeed
-        self.airspeed = airspeed
-        self.TAS = TAS
-        self.TAS_Set = TAS_Set
+        self.ground = round(groundspeed * 1.94384) # Converts to knot
+        self.air = round(airspeed * 1.94384) # Converts to knot
+        self.TAS = round(TAS * 1.94384*10)/10
+        self.TAS_Set = round(TAS_Set * 1.94384*10)/10
         self.climb = climb
-        #------------* 1.94384)       # Converts to knot-------
 
     def __str__(self):
-        return "Swoop Speed: groundspeed={}, airspeed={}, TAS={}, TAS_Set={}, climb={}".format(self.groundspeed, self.airspeed,self.TAS,self.TAS_Set,self.climb)
+        return "Swoop Speed: groundspeed={}, airspeed={}, TAS={}, TAS_Set={}, climb={}".format(self.ground, self.air,self.TAS,self.TAS_Set,self.climb)
     
+    def ground_ms(self):
+        return self.ground / 1.94384
+
+    def air_ms(self):
+        return self.air / 1.94384
+
+    def TAS_Set_ms(self):
+        return self.TAS_Set / 1.94384
 
 
 class WindDetails(object):
@@ -203,36 +213,36 @@ class SensorOffsets(object):
     
 
 class SwoopInFlightFlags(object):
-    def __init__(self, inflightflags):
+    def __init__(self, inflightFlagsMsg):
         self.swoop_flags =None
-        self.swoop_flags_id = '{:016b}'.format(0)
+        self.swoop_flags_id = bit_format(length=FLAGS_LENGTH, value=0)
         self.autopilotTriggerContingency = False
 
         flags = {}
         flags["Flags"] = []
 
-        fields = inflightflags.get_fieldnames()
+        fields = inflightFlagsMsg.get_fieldnames()
         #logging.info(fields)
         self.autopilotTriggerContingency = False
 
         i = 0
         while i < len(fields):
             if (fields[i] == "maximumIntensity"):
-                flags["maxIntensity"] = getattr(inflightflags,fields[i])
+                flags["maxIntensity"] = getattr(inflightFlagsMsg,fields[i])
             elif (fields[i] == "inflightFlags"):
-                self.swoop_flags_id = '{:016b}'.format(inflightflags.inflightFlags) # [int(digit) for digit in '{:016b}'.format(flags.inflightFlags)]
+                self.swoop_flags_id = bit_format(length=FLAGS_LENGTH, value=inflightFlagsMsg.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
             elif (fields[i].endswith("Intensity")):
                 #logging.info("Intensity:" + fields[i])
-                if getattr(inflightflags,fields[i]) > 0:
+                if getattr(inflightFlagsMsg,fields[i]) > 0:
                     flag = {}
                     flag["Type"] = FlagLookup[fields[i].replace("Intensity", "")]
-                    flag["Intensity"] = getattr(inflightflags,fields[i])
+                    flag["Intensity"] = getattr(inflightFlagsMsg,fields[i])
 
                     if (fields[i].replace("Intensity", "") != "adsbFlags"):
                         if flag["Intensity"] >= 3:
                             self.autopilotTriggerContingency = True
 
-                    detailValue = getattr(inflightflags,fields[i].replace("Intensity", "Detail"))
+                    detailValue = getattr(inflightFlagsMsg,fields[i].replace("Intensity", "Detail"))
                     if detailValue > 0:
                         flag["DetailID"] = detailValue
                         flag["Detail"] = self.detail_lookup(fields[i].replace("Intensity", ""),detailValue)
@@ -240,8 +250,7 @@ class SwoopInFlightFlags(object):
                     flags["Flags"].append(flag)
 
             i += 1
-
-        self.swoop_flags = flags
+            self.swoop_flags = flags
 
     def __str__(self):
         return "Flags: Auto Trigger Contingency={}, SatcomFlags={}, Flags={}".format(self.autopilotTriggerContingency, self.swoop_flags_id,self.swoop_flags)
@@ -261,10 +270,34 @@ class SwoopInFlightFlags(object):
         return lookup
 
 
+class Battery(object):
+    """
+    System battery information.
+    An object of this type is returned by :py:attr:`Vehicle.battery`.
+    :param voltage: Battery voltage in millivolts.
+    :param current: Battery current, in 10 * milliamperes. ``None`` if the autopilot does not support current measurement.
+    :param level: Remaining battery energy. ``None`` if the autopilot cannot estimate the remaining battery.
+    """
+
+    def __init__(self, voltage, current, level):
+        self.voltage = voltage / 1000.0
+        if current == -1:
+            self.current = None
+        else:
+            self.current = current / 100.0
+        if level == -1:
+            self.level = None
+        else:
+            self.level = level
+
+    def __str__(self):
+        return "Battery:voltage={},current={},level={}".format(self.voltage, self.current,
+                                                               self.level)
+
 class SwoopArmingFlags(object):
     def __init__(self, swooparmingflags):
-        self.swoop_arming_check_irregular = '{:027b}'.format(0)
-        self.swoop_arming_check_common = '{:011b}'.format(0)
+        self.swoop_arming_check_irregular = bit_format(length=ARMING_CHECK_IRREGULAR_LENGTH, value=0)
+        self.swoop_arming_check_common = bit_format(length=ARMING_CHECK_COMMON_LENGTH, value=0)
         self.droneready = False
 
         droneready = {}
@@ -274,29 +307,23 @@ class SwoopArmingFlags(object):
         if (swooparmingflags.armingCheckStatus > 0):
             droneready["ready"] = True
             self.droneready = True
-            self.swoop_arming_check_irregular = '{:027b}'.format(0)
-            self.swoop_arming_check_common = '{:011b}'.format(0)
+            self.swoop_arming_check_irregular = bit_format(length=ARMING_CHECK_IRREGULAR_LENGTH, value=0)
+            self.swoop_arming_check_common = bit_format(length=ARMING_CHECK_COMMON_LENGTH, value=0)
         else:
             droneready["ready"] = False
             self.droneready = False
-            self.swoop_arming_check_irregular = '{:016b}'.format(swooparmingflags.armingCheckFlags1) + '{:011b}'.format(swooparmingflags.armingCheckFlags2)
-            self.swoop_arming_check_common = '{:011b}'.format(swooparmingflags.armingCheckFlags3)
-            
+            self.swoop_arming_check_irregular = bit_format(length=ARMING_CHECK_IRREGULAR_LENGTH, value=swooparmingflags.armingCheckFlags1)
+            self.swoop_arming_check_common = bit_format(length=ARMING_CHECK_COMMON_LENGTH, value=swooparmingflags.armingCheckFlagsCommon)
+
             armingCheckFlags1 = self.detail_lookup('armingCheckFlags1',swooparmingflags.armingCheckFlags1)
-            armingCheckFlags2 = self.detail_lookup('armingCheckFlags2',swooparmingflags.armingCheckFlags2)
-            
-            if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
+
+            if(len(armingCheckFlags1) > 0):
                 droneready["irregular"] = armingCheckFlags1
-                droneready["irregular"].append(armingCheckFlags2)
-            elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
-                droneready["irregular"] = armingCheckFlags1
-            elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
-                droneready["irregular"] = armingCheckFlags2
-            
-            armingCheckFlags3 = self.detail_lookup('armingCheckFlags3',swooparmingflags.armingCheckFlags3)
-            if (len(armingCheckFlags3) > 0):
-                droneready["common"] = armingCheckFlags3
-        
+
+            armingCheckFlagsCommon = self.detail_lookup('armingCheckFlagsCommon',swooparmingflags.armingCheckFlagsCommon)
+            if (len(armingCheckFlagsCommon) > 0):
+                droneready["common"] = armingCheckFlagsCommon
+
         self.swoop_droneready = droneready
 
     def __str__(self):
@@ -316,6 +343,7 @@ class SwoopArmingFlags(object):
 
         return lookup
     
+
 
 class Version(object):
     """
@@ -933,7 +961,7 @@ class Vehicle(HasObservers):
         self._ready_attrs = {'commands'}
 
         # Default parameters when calling wait_ready() or wait_ready(True).
-        self._default_ready_attrs = ['gps_0', 'armed', 'mode', 'attitude']
+        self._default_ready_attrs = ['armed', 'mode']
 
         @self.on_attribute('*')
         def listener(_, name, value):
@@ -1034,23 +1062,10 @@ class Vehicle(HasObservers):
         def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):            
             self._swoop_inflight_flags = m
 
-
-
-
-        self.flightStatus = None
-        self.flightState = None
-        self.waypointJumper = 0
-        self.nextWaypoint = 0
-        # @self.on_message('SWOOP_STATUS')
-        # def listener_SWOOP_STATUS(self, name, m):
-        #     self.flightStatus = m.flightStatus
-        #     self.flightState = m.flightStatus
-        #     self.previousWaypoint = m.previousWaypoint
-        #     self.currentWaypoint = m.currentWaypoint
-        #     self.nextNavWaypoint = m.nextNavWaypoint
-        #     self.nextWaypointType = m.nextWaypointType
-        #     self.waypointJumper = m.waypointJumper
-        #     self.nextWaypoint = m.nextWaypoint
+        self._swoopstatus = None
+        @self.on_message('SWOOP_STATUS')
+        def listener_SWOOP_STATUS(self, name, m):
+            self._swoopstatus = m
 
 
 
@@ -1113,6 +1128,7 @@ class Vehicle(HasObservers):
             self._voltage = m.voltage_battery
             self._current = m.current_battery
             self._level = m.battery_remaining
+            self.notify_attribute_listeners('battery', self.battery)
 
 
         self._current_waypoint = 0
@@ -1555,7 +1571,7 @@ class Vehicle(HasObservers):
         """
         SwoopStatus (:py:class:`SwoopStatus`).
         """
-        return SwoopStatus(self._swoopstatus_flightStatus, self._swoopstatus_flightState, self._swoopstatus_previousWaypoint,self._swoopstatus_currentWaypoint,self._swoopstatus_nextNavWaypoint,self._swoopstatus_waypointJumper,self._swoopstatus_turnAroundOk,self._swoopstatus_forwardDiversionOk)
+        return SwoopStatus(self._swoopstatus)
 
     @property
     def position(self):
@@ -1563,8 +1579,6 @@ class Vehicle(HasObservers):
         SwoopPosition (:py:class:`SwoopPosition`).
         """
         return Position(self._location.global_frame.lat, self._location.global_frame.lon, self._location.global_frame.alt, self._rngfnd_distance, self._track, self._heading)
-
-
 
     @property
     def speed(self):
@@ -1582,14 +1596,14 @@ class Vehicle(HasObservers):
     #     speedtas['airspeedMultiplierTAS'] = self._trueAirspeedMultiplier
     #     return speedtas
 
-    # @property 
-    # def speed(self):
-    #     speed = {}
-    #     speed['ground'] = round(self.groundspeed * 1.94384) # Converts to knot
-    #     speed['air'] = round(self.airspeed * 1.94384)       # Converts to knot
-    #     speed['climb'] = self.climb
-    #     return speed
-
+    @property
+    def battery(self):
+        """
+        Current system batter status (:py:class:`Battery`).
+        """
+        if self._voltage is None or self._current is None or self._level is None:
+            return None
+        return Battery(self._voltage, self._current, self._level)
 
     @property
     def winddetails(self):
@@ -1644,9 +1658,9 @@ class Vehicle(HasObservers):
     def ready(self):
         return SwoopArmingFlags(self._swoop_arming_flags)
 
-    # @property
-    # def swoopstatus(self):
-    #     return SwoopFlightStatus(self.swoop_status)
+    @property
+    def swoopstatus(self):
+        return SwoopStatus(self._swoopstatus)
 
     @property
     def version(self):
