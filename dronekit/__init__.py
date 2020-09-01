@@ -86,37 +86,6 @@ class APIException(Exception):
 class TimeoutError(APIException):
     '''Raised by operations that have timeouts.'''
 
-
-class Attitude(object):
-    """
-    Attitude information.
-
-    An object of this type is returned by :py:attr:`Vehicle.attitude`.
-
-    .. _figure_attitude:
-
-    .. figure:: http://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Yaw_Axis_Corrected.svg/500px-Yaw_Axis_Corrected.svg.png
-        :width: 400px
-        :alt: Diagram showing Pitch, Roll, Yaw
-        :target: http://commons.wikimedia.org/wiki/File:Yaw_Axis_Corrected.svg
-
-        Diagram showing Pitch, Roll, Yaw (`Creative Commons <http://commons.wikimedia.org/wiki/File:Yaw_Axis_Corrected.svg>`_)
-
-    :param pitch: Pitch in radians
-    :param yaw: Yaw in radians
-    :param roll: Roll in radians
-    """
-
-    def __init__(self, pitch, yaw, roll):
-        self.pitch = pitch
-        self.yaw = yaw
-        self.roll = roll
-
-    def __str__(self):
-        fmt = '{}:pitch={pitch},yaw={yaw},roll={roll}'
-        return fmt.format(self.__class__.__name__, **vars(self))
-
-
 class LocationGlobal(object):
     """
     A global location object.
@@ -150,202 +119,189 @@ class LocationGlobal(object):
         self.global_frame = None
 
 
+class SwoopStatus(object):
+    """
+    SWOOP STATUS.
+
+    An object of this type is returned by :py:attr:`Vehicle.swoopstatus`.
+    """
+    def __init__(self, flightStatus, flightState, previousWaypoint,currentWaypoint,nextNavWaypoint,waypointJumper,turnAroundOk,forwardDiversionOk):
+        self.flightStatus = flightStatus
+        self.flightState = flightState
+        self.previousWaypoint = previousWaypoint
+        self.currentWaypoint = currentWaypoint
+        self.nextNavWaypoint = nextNavWaypoint
+        self.waypointJumper = waypointJumper
+        self.turnAroundOk = turnAroundOk
+        self.forwardDiversionOk = forwardDiversionOk
+    
     def __str__(self):
-        return "LocationGlobal:lat=%s,lon=%s,alt=%s" % (self.lat, self.lon, self.alt)
+        return "Swoop Status: Status={}, State={}, Previous Waypoint={}, Current Waypoint={}, Next Nav Waypoint={}, Jumper={}, Turn Around Ok={}, Forward Diversion Ok={}".format(self.flightStatus, self.flightState,self.previousWaypoint,self.currentWaypoint,self.nextNavWaypoint,self.waypointJumper,self.turnAroundOk ,self.forwardDiversionOk  )
 
 
-class LocationGlobalRelative(object):
+
+
+class Position(object):
     """
-    A global location object, with attitude relative to home location altitude.
+    Swoop Position
 
-    The latitude and longitude are relative to the `WGS84 coordinate system <http://en.wikipedia.org/wiki/World_Geodetic_System>`_.
-    The altitude is relative to the *home position*.
-
-    For example, a ``LocationGlobalRelative`` object with an altitude of 30 metres above the home location might be defined as:
-
-    .. code:: python
-
-       LocationGlobalRelative(-34.364114, 149.166022, 30)
-
-    .. todo:: FIXME: Location class - possibly add a vector3 representation.
-
-    An object of this type is owned by :py:attr:`Vehicle.location`. See that class for information on
-    reading and observing location in the global-relative frame.
-
-    :param lat: Latitude.
-    :param lon: Longitude.
-    :param alt: Altitude in meters (relative to the home location).
+    An object of this type is returned by :py:attr:`Vehicle.swoopstatus`.
     """
 
-    def __init__(self, lat, lon, alt=None):
+    def __init__(self, lat, lon, altMeters, lidarMeters,track,heading):
         self.lat = lat
         self.lon = lon
-        self.alt = alt
-
-        # This is for backward compatibility.
-        self.local_frame = None
-        self.global_frame = None
-
-    def __str__(self):
-        return "LocationGlobalRelative:lat=%s,lon=%s,alt=%s" % (self.lat, self.lon, self.alt)
-
-
-class LocationLocal(object):
-    """
-    A local location object.
-
-    The north, east and down are relative to the EKF origin.  This is most likely the location where the vehicle was turned on.
-
-    An object of this type is owned by :py:attr:`Vehicle.location`. See that class for information on
-    reading and observing location in the local frame.
-
-    :param north: Position north of the EKF origin in meters.
-    :param east: Position east of the EKF origin in meters.
-    :param down: Position down from the EKF origin in meters. (i.e. negative altitude in meters)
-    """
-
-    def __init__(self, north, east, down):
-        self.north = north
-        self.east = east
-        self.down = down
+        self.alt = altMeters * 3.28084
+        self.lidar = lidarMeters * 3.28084
+        self.track = track
+        self.heading =  heading
 
     def __str__(self):
-        return "LocationLocal:north=%s,east=%s,down=%s" % (self.north, self.east, self.down)
-
-    def distance_home(self):
-        """
-        Distance away from home, in meters. Returns 3D distance if `down` is known, otherwise 2D distance.
-        """
-
-        if self.north is not None and self.east is not None:
-            if self.down is not None:
-                return math.sqrt(self.north**2 + self.east**2 + self.down**2)
-            else:
-                return math.sqrt(self.north**2 + self.east**2)
+        return "Swoop Position: lat={}, lon={}, alt={}, lidar={}, track={}, heading={}".format(self.lat, self.lon,self.alt,self.lidar,self.track,self.heading)
 
 
-class GPSInfo(object):
+class Speed(object):
     """
-    Standard information about GPS.
+    SWOOP Position.
 
-    If there is no GPS lock the parameters are set to ``None``.
-
-    :param Int eph: GPS horizontal dilution of position (HDOP).
-    :param Int epv: GPS vertical dilution of position (VDOP).
-    :param Int fix_type: 0-1: no fix, 2: 2D fix, 3: 3D fix
-    :param Int satellites_visible: Number of satellites visible.
-
-    .. todo:: FIXME: GPSInfo class - possibly normalize eph/epv?  report fix type as string?
+    An object of this type is returned by :py:attr:`Vehicle.swoopstatus`.
     """
-
-    def __init__(self, eph, epv, fix_type, satellites_visible):
-        self.eph = eph
-        self.epv = epv
-        self.fix_type = fix_type
-        self.satellites_visible = satellites_visible
-
-    def __str__(self):
-        return "GPSInfo:fix=%s,num_sat=%s" % (self.fix_type, self.satellites_visible)
-
-
-class Battery(object):
-    """
-    System battery information.
-
-    An object of this type is returned by :py:attr:`Vehicle.battery`.
-
-    :param voltage: Battery voltage in millivolts.
-    :param current: Battery current, in 10 * milliamperes. ``None`` if the autopilot does not support current measurement.
-    :param level: Remaining battery energy. ``None`` if the autopilot cannot estimate the remaining battery.
-    """
-
-    def __init__(self, voltage, current, level):
-        self.voltage = voltage / 1000.0
-        if current == -1:
-            self.current = None
-        else:
-            self.current = current / 100.0
-        if level == -1:
-            self.level = None
-        else:
-            self.level = level
-
-    def __str__(self):
-        return "Battery:voltage={},current={},level={}".format(self.voltage, self.current,
-                                                               self.level)
-
-
-class Rangefinder(object):
-    """
-    Rangefinder readings.
-
-    An object of this type is returned by :py:attr:`Vehicle.rangefinder`.
-
-    :param distance: Distance (metres). ``None`` if the vehicle doesn't have a rangefinder.
-    :param voltage: Voltage (volts). ``None`` if the vehicle doesn't have a rangefinder.
-    """
-
-    def __init__(self, distance, voltage):
-        self.distance = distance
-        self.voltage = voltage
-
-    def __str__(self):
-        return "Rangefinder: distance={}, voltage={}".format(self.distance, self.voltage)
-
-
-
-
-class VFRHUD(object):
-    def __init__(self,climb):
+    def __init__(self, groundspeed, airspeed, TAS, TAS_Set, climb):
+        self.groundspeed = groundspeed
+        self.airspeed = airspeed
+        self.TAS = TAS
+        self.TAS_Set = TAS_Set
         self.climb = climb
+        #------------* 1.94384)       # Converts to knot-------
+
+    def __str__(self):
+        return "Swoop Speed: groundspeed={}, airspeed={}, TAS={}, TAS_Set={}, climb={}".format(self.groundspeed, self.airspeed,self.TAS,self.TAS_Set,self.climb)
+    
+
 
 class WindDetails(object):
     def __init__(self, wind):
         self.windDetails = wind
 
-class GPSRaw(object):
-    def __init__(self, track):
-        self.track = track
-
 class SensorOffsets(object):
     def __init__(self, temp):
         self.pixhawk_temp = temp
-
-class BatteryStatus(object):
-    def __init__(self, level):
-        self.battery2_level = level
-
-class Battery2(object):
-    def __init__(self, voltage, current):
-        self.battery2_voltage = voltage
-        self.battery2_current = current
-
-
-class SwoopArming(object):
-    def __init__(self, arming_status, arming_check_flags):
-        self.swoop_armable = arming_status
-        self.swoop_arming_check_flags = arming_check_flags
     
 
 class SwoopInFlightFlags(object):
+    def __init__(self, inflightflags):
+        self.swoop_flags =None
+        self.swoop_flags_id = '{:016b}'.format(0)
+        self.autopilotTriggerContingency = False
 
-    def __init__(self, inflightFlags, maximimIntensity, flag_intesities, flag_details):
+        flags = {}
+        flags["Flags"] = []
 
-        self.swoop_flags = inflightFlags
-        self.swoop_max_intensity = maximimIntensity
-        self.swoop_flag_intensities = flag_intesities
-        self.swoop_flag_details = flag_details
+        fields = inflightflags.get_fieldnames()
+        #logging.info(fields)
+        self.autopilotTriggerContingency = False
+
+        i = 0
+        while i < len(fields):
+            if (fields[i] == "maximumIntensity"):
+                flags["maxIntensity"] = getattr(inflightflags,fields[i])
+            elif (fields[i] == "inflightFlags"):
+                self.swoop_flags_id = '{:016b}'.format(inflightflags.inflightFlags) # [int(digit) for digit in '{:016b}'.format(flags.inflightFlags)]
+            elif (fields[i].endswith("Intensity")):
+                #logging.info("Intensity:" + fields[i])
+                if getattr(inflightflags,fields[i]) > 0:
+                    flag = {}
+                    flag["Type"] = FlagLookup[fields[i].replace("Intensity", "")]
+                    flag["Intensity"] = getattr(inflightflags,fields[i])
+
+                    if (fields[i].replace("Intensity", "") != "adsbFlags"):
+                        if flag["Intensity"] >= 3:
+                            self.autopilotTriggerContingency = True
+
+                    detailValue = getattr(inflightflags,fields[i].replace("Intensity", "Detail"))
+                    if detailValue > 0:
+                        flag["DetailID"] = detailValue
+                        flag["Detail"] = self.detail_lookup(fields[i].replace("Intensity", ""),detailValue)
+
+                    flags["Flags"].append(flag)
+
+            i += 1
+
+        self.swoop_flags = flags
+
+    def __str__(self):
+        return "Flags: Auto Trigger Contingency={}, SatcomFlags={}, Flags={}".format(self.autopilotTriggerContingency, self.swoop_flags_id,self.swoop_flags)
+    
+    def detail_lookup(self, lookupIdentifier,value):
+        len(DetailLookup[lookupIdentifier])
+        lookup = []
+        i = len(DetailLookup[lookupIdentifier])
+
+        while i > 0:
+
+            if (value / 2**(i-1)) >= 1:
+                value = value - (2**(i-1))
+                lookup.append(DetailLookup[lookupIdentifier][i - 1])
+            i -= 1
+
+        return lookup
 
 
+class SwoopArmingFlags(object):
+    def __init__(self, swooparmingflags):
+        self.swoop_arming_check_irregular = '{:027b}'.format(0)
+        self.swoop_arming_check_common = '{:011b}'.format(0)
+        self.droneready = False
 
-class SwoopFlightStatus(object):
+        droneready = {}
+        droneready["common"] = []
+        droneready["irregular"] = []
 
-    def __init__(self, flightStatus):
+        if (swooparmingflags.armingCheckStatus > 0):
+            droneready["ready"] = True
+            self.droneready = True
+            self.swoop_arming_check_irregular = '{:027b}'.format(0)
+            self.swoop_arming_check_common = '{:011b}'.format(0)
+        else:
+            droneready["ready"] = False
+            self.droneready = False
+            self.swoop_arming_check_irregular = '{:016b}'.format(swooparmingflags.armingCheckFlags1) + '{:011b}'.format(swooparmingflags.armingCheckFlags2)
+            self.swoop_arming_check_common = '{:011b}'.format(swooparmingflags.armingCheckFlags3)
+            
+            armingCheckFlags1 = self.detail_lookup('armingCheckFlags1',swooparmingflags.armingCheckFlags1)
+            armingCheckFlags2 = self.detail_lookup('armingCheckFlags2',swooparmingflags.armingCheckFlags2)
+            
+            if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
+                droneready["irregular"] = armingCheckFlags1
+                droneready["irregular"].append(armingCheckFlags2)
+            elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
+                droneready["irregular"] = armingCheckFlags1
+            elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
+                droneready["irregular"] = armingCheckFlags2
+            
+            armingCheckFlags3 = self.detail_lookup('armingCheckFlags3',swooparmingflags.armingCheckFlags3)
+            if (len(armingCheckFlags3) > 0):
+                droneready["common"] = armingCheckFlags3
+        
+        self.swoop_droneready = droneready
 
-        self.swoop_status = flightStatus
+    def __str__(self):
+        return "Arming Checks: Drone Ready={}, SatcomRegular={}, SatcomIrregular={}, Checks={}".format(self.droneready, self.swoop_arming_check_common, self.swoop_arming_check_irregular,self.swoop_droneready)
 
+    def detail_lookup(self, lookupIdentifier,value):
+        len(DetailLookup[lookupIdentifier])
+        lookup = []
+        i = len(DetailLookup[lookupIdentifier])
 
+        while i > 0:
 
+            if (value / 2**(i-1)) >= 1:
+                value = value - (2**(i-1))
+                lookup.append(DetailLookup[lookupIdentifier][i - 1])
+            i -= 1
+
+        return lookup
+    
 
 class Version(object):
     """
@@ -829,108 +785,6 @@ class ChannelsOverride(dict):
             self._vehicle._master.mav.rc_channels_override_send(0, 0, *overrides)
 
 
-class Channels(dict):
-    """
-    A dictionary class for managing RC channel information associated with a :py:class:`Vehicle`.
-
-    An object of this type is accessed through :py:attr:`Vehicle.channels`. This object also stores
-    the current vehicle channel overrides through its :py:attr:`overrides` attribute.
-
-    For more information and examples see :ref:`example_channel_overrides`.
-    """
-
-    def __init__(self, vehicle, count):
-        self._vehicle = vehicle
-        self._count = count
-        self._overrides = ChannelsOverride(vehicle)
-
-        # populate readback
-        self._readonly = False
-        for k in range(0, count):
-            self[k + 1] = None
-        self._readonly = True
-
-    @property
-    def count(self):
-        """
-        The number of channels defined in the dictionary (currently 8).
-        """
-        return self._count
-
-    def __getitem__(self, key):
-        return dict.__getitem__(self, str(key))
-
-    def __setitem__(self, key, value):
-        if self._readonly:
-            raise TypeError('__setitem__ is not supported on Channels object')
-        return dict.__setitem__(self, str(key), value)
-
-    def __len__(self):
-        return self._count
-
-    def _update_channel(self, channel, value):
-        # If we have channels on different ports, we expand the Channels
-        # object to support them.
-        channel = int(channel)
-        self._readonly = False
-        self[channel] = value
-        self._readonly = True
-        self._count = max(self._count, channel)
-
-    @property
-    def overrides(self):
-        """
-        Attribute to read, set and clear channel overrides (also known as "rc overrides")
-        associated with a :py:class:`Vehicle` (via :py:class:`Vehicle.channels`). This is an
-        object of type :py:class:`ChannelsOverride`.
-
-        For more information and examples see :ref:`example_channel_overrides`.
-
-        To set channel overrides:
-
-        .. code:: python
-
-            # Set and clear overrids using dictionary syntax (clear by setting override to none)
-            vehicle.channels.overrides = {'5':None, '6':None,'3':500}
-
-            # You can also set and clear overrides using indexing syntax
-            vehicle.channels.overrides['2'] = 200
-            vehicle.channels.overrides['2'] = None
-
-            # Clear using 'del'
-            del vehicle.channels.overrides['3']
-
-            # Clear all overrides by setting an empty dictionary
-            vehicle.channels.overrides = {}
-
-        Read the channel overrides either as a dictionary or by index. Note that you'll get
-        a ``KeyError`` exception if you read a channel override that has not been set.
-
-        .. code:: python
-
-            # Get all channel overrides
-            print " Channel overrides: %s" % vehicle.channels.overrides
-            # Print just one channel override
-            print " Ch2 override: %s" % vehicle.channels.overrides['2']
-        """
-        return self._overrides
-
-    @overrides.setter
-    def overrides(self, newch):
-        self._overrides._active = False
-        self._overrides.clear()
-        for k, v in newch.items():
-            if v:
-                self._overrides[str(k)] = v
-            else:
-                try:
-                    del self._overrides[str(k)]
-                except:
-                    pass
-        self._overrides._active = True
-        self._overrides._send()
-
-
 class Locations(HasObservers):
     """
     An object for holding location information in global, global relative and local frames.
@@ -954,48 +808,11 @@ class Locations(HasObservers):
         def listener(vehicle, name, m):
             (self._lat, self._lon) = (m.lat / 1.0e7, m.lon / 1.0e7)
             self._relative_alt = m.relative_alt / 1000.0
-            self.notify_attribute_listeners('global_relative_frame', self.global_relative_frame)
-            vehicle.notify_attribute_listeners('location.global_relative_frame',
-                                               vehicle.location.global_relative_frame)
 
             if self._alt is not None or m.alt != 0:
                 # Require first alt value to be non-0
                 # TODO is this the proper check to do?
                 self._alt = m.alt / 1000.0
-                self.notify_attribute_listeners('global_frame', self.global_frame)
-                vehicle.notify_attribute_listeners('location.global_frame',
-                                                   vehicle.location.global_frame)
-
-            vehicle.notify_attribute_listeners('location', vehicle.location)
-
-        self._north = None
-        self._east = None
-        self._down = None
-
-        @vehicle.on_message('LOCAL_POSITION_NED')
-        def listener(vehicle, name, m):
-            self._north = m.x
-            self._east = m.y
-            self._down = m.z
-            self.notify_attribute_listeners('local_frame', self.local_frame)
-            vehicle.notify_attribute_listeners('location.local_frame', vehicle.location.local_frame)
-            vehicle.notify_attribute_listeners('location', vehicle.location)
-
-    @property
-    def local_frame(self):
-        """
-        Location in local NED frame (a :py:class:`LocationGlobalRelative`).
-
-        This is accessed through the :py:attr:`Vehicle.location` attribute:
-
-        .. code-block:: python
-
-            print "Local Location: %s" % vehicle.location.local_frame
-
-        This location will not start to update until the vehicle is armed.
-        """
-        return LocationLocal(self._north, self._east, self._down)
-
     @property
     def global_frame(self):
         """
@@ -1028,26 +845,7 @@ class Locations(HasObservers):
             #Alternatively, use decorator: ``@vehicle.location.on_attribute('global_frame')``.
         """
         return LocationGlobal(self._lat, self._lon, self._alt)
-
-    @property
-    def global_relative_frame(self):
-        """
-        Location in global frame, with altitude relative to the home location
-        (a :py:class:`LocationGlobalRelative`).
-
-        The latitude and longitude are relative to the
-        `WGS84 coordinate system <http://en.wikipedia.org/wiki/World_Geodetic_System>`_.
-        The altitude is relative to :py:attr:`home location <Vehicle.home_location>`.
-
-        This is accessed through the :py:attr:`Vehicle.location` attribute:
-
-        .. code-block:: python
-
-            print "Global Location (relative altitude): %s" % vehicle.location.global_relative_frame
-            print "Altitude relative to home_location: %s" % vehicle.location.global_relative_frame.alt
-        """
-        return LocationGlobalRelative(self._lat, self._lon, self._relative_alt)
-
+                
 
 class Vehicle(HasObservers):
     """
@@ -1135,9 +933,6 @@ class Vehicle(HasObservers):
             self.notify_message_listeners(msg.get_type(), msg)
 
         self._location = Locations(self)
-        self._vx = None
-        self._vy = None
-        self._vz = None
 
         @self.on_message('STATUSTEXT')
         def listener_STATUSTEXT(self, name, m):
@@ -1147,39 +942,16 @@ class Vehicle(HasObservers):
                 level=self._mavlink_statustext_severity[m.severity]
             )
 
-        @self.on_message('GLOBAL_POSITION_INT')
-        def listener_GLOBAL_POSITION_INT(self, name, m):
-            (self._vx, self._vy, self._vz) = (m.vx / 100.0, m.vy / 100.0, m.vz / 100.0)
-            self.notify_attribute_listeners('velocity', self.velocity)
 
-        self._pitch = None
-        self._yaw = None
-        self._roll = None
-        self._pitchspeed = None
-        self._yawspeed = None
-        self._rollspeed = None
-
-        @self.on_message('ATTITUDE')
-        def listener_ATTITUDE(self, name, m):
-            self._pitch = m.pitch
-            self._yaw = m.yaw
-            self._roll = m.roll
-            self._pitchspeed = m.pitchspeed
-            self._yawspeed = m.yawspeed
-            self._rollspeed = m.rollspeed
-            self.notify_attribute_listeners('attitude', self.attitude)
-
-
-        self.trueAirspeed = None
-        self.trueTrimSpeed = None
-        self.trueAirspeedMultiplier = None
+        self._trueAirspeed = None
+        self._trueTrimSpeed = None
+        self._trueAirspeedMultiplier = None
 
         @self.on_message('SWOOP_AIRSPEED')
         def listener(self, name, m):
-            self.trueAirspeed = m.trueAirspeed / 100 #convert from cm/s to m/s
-            self.trueTrimSpeed = m.trueTrimSpeed / 100 #convert from cm/s to m/s
-            self.trueAirspeedMultiplier = m.trueAirspeed
-
+            self._trueAirspeed = m.trueAirspeed / 100 #convert from cm/s to m/s
+            self._trueTrimSpeed = m.trueTrimSpeed / 100 #convert from cm/s to m/s
+            self._trueAirspeedMultiplier = m.trueAirspeed
 
 
         self._heading = None
@@ -1189,11 +961,8 @@ class Vehicle(HasObservers):
         @self.on_message('VFR_HUD')
         def listener(self, name, m):
             self._heading = m.heading
-            self.notify_attribute_listeners('heading', self.heading)
-            self._airspeed = m.airspeed
-            self.notify_attribute_listeners('airspeed', self.airspeed)
+            self._airspeed = m.airspeed            
             self._groundspeed = m.groundspeed
-            self.notify_attribute_listeners('groundspeed', self.groundspeed)
 
         self._rngfnd_distance = None
         self._rngfnd_voltage = None
@@ -1202,7 +971,7 @@ class Vehicle(HasObservers):
         def listener(self, name, m):
             self._rngfnd_distance = m.distance
             self._rngfnd_voltage = m.voltage
-            self.notify_attribute_listeners('rangefinder', self.rangefinder)
+
 
         self.climb = None
 
@@ -1215,10 +984,10 @@ class Vehicle(HasObservers):
         def listener_WIND(self, name, m):
             self.windDetails = [round(m.direction), round(m.speed* 1.94384,1), round(m.speed_z* 1.94384,1)]
 
-        self.track = None
+        self._track = None
         @self.on_message('GPS_RAW_INT')
         def listener_GPS_RAW_INT(self, name, m):
-            self.track = m.cog/100
+            self._track = m.cog/100
 
         self.pixhawktemp = None
 
@@ -1241,144 +1010,35 @@ class Vehicle(HasObservers):
             self.battery2_current = m.current_battery
 
 
-        self.swoop_armable = None
-        self.swoop_arming_check_flags = []
-
-
-        # @self.on_message('SWOOP_ENERGY')
-        # def listener_SWOOP_ENERGY(self, name, m):
-        #     logging.error(str(m))
-
-        # @self.on_message('SWOOP_ARMING_CHECKS_PASSED')
-        # def listener_SWOOP_ARMING_CHECKS_PASSED(self, name, m):
-        #     logging.error(str(m))
-
-        # @self.on_message('SWOOP_BATTERY_HEALTH')
-        # def listener_SWOOP_BATTERY_HEALTH(self, name, m):
-        #     logging.error(str(m))
-
-
-        # @self.on_message('SWOOP_BATTERY_HEALTH')
-        # def listener_SWOOP_BATTERY_HEALTH(self, name, m):
-        #     logging.error(str(m))
-
-
-        # @self.on_message('SWOOP_ENERGY')
-        # def listener_SWOOP_ENERGY(self, name, m):
-        #     logging.error(str(m))
-
-        self.swoop_arming_check_irregular = '{:027b}'.format(0)
-        self.swoop_arming_check_common = '{:011b}'.format(0)
-        self.droneready = False
+        self._swoop_arming_flags = None
         @self.on_message('SWOOP_ARMING_FLAGS')
         def listener_SWOOP_ARMING_FLAGS(self, name, m):
-            droneready = {}
-            droneready["common"] = []
-            droneready["irregular"] = []
+            self._swoop_arming_flags = m
 
-            if (m.armingCheckStatus > 0):
-                droneready["ready"] = True
-                self.droneready = True
-                self.swoop_arming_check_irregular = '{:027b}'.format(0)
-                self.swoop_arming_check_common = '{:011b}'.format(0)
-            else:
-                droneready["ready"] = False
-                self.droneready = False
-                self.swoop_arming_check_irregular = '{:016b}'.format(m.armingCheckFlags1) + '{:011b}'.format(m.armingCheckFlags2)
-                self.swoop_arming_check_common = '{:011b}'.format(m.armingCheckFlags3)
-                
-                armingCheckFlags1 = detail_lookup('armingCheckFlags1',m.armingCheckFlags1)
-                armingCheckFlags2 = detail_lookup('armingCheckFlags2',m.armingCheckFlags2)
-                
-                if (len(armingCheckFlags1) > 0 and len(armingCheckFlags2) > 0 ):
-                    droneready["irregular"] = armingCheckFlags1
-                    droneready["irregular"].append(armingCheckFlags2)
-                elif(len(armingCheckFlags1) > 0 and len(armingCheckFlags2) == 0 ):
-                    droneready["irregular"] = armingCheckFlags1
-                elif(len(armingCheckFlags1) == 0 and len(armingCheckFlags2) > 0 ):
-                    droneready["irregular"] = armingCheckFlags2
-                
-                armingCheckFlags3 = detail_lookup('armingCheckFlags3',m.armingCheckFlags3)
-                if (len(armingCheckFlags3) > 0):
-                    droneready["common"] = armingCheckFlags3
-            
-            self.swoop_droneready = droneready
-
-
-
-
-        self.swoop_flags =None
-        self.swoop_flags_id = '{:016b}'.format(0)
-        self.autopilotTriggerContingency = False
-        
+        self._swoop_inflight_flags = None
         @self.on_message('SWOOP_INFLIGHT_FLAGS_INSTANT')
         def listener_SWOOP_INFLIGHT_FLAGS_INSTANT(self, name, m):            
-            flags = {}
-            flags["Flags"] = []
-
-            fields = m.get_fieldnames()
-            #logging.info(fields)
-            self.autopilotTriggerContingency = False
-
-            i = 0
-            while i < len(fields):
-                if (fields[i] == "maximumIntensity"):
-                    flags["maxIntensity"] = getattr(m,fields[i])
-                elif (fields[i] == "inflightFlags"):
-                    self.swoop_flags_id = '{:016b}'.format(m.inflightFlags) # [int(digit) for digit in '{:016b}'.format(m.inflightFlags)]
-                elif (fields[i].endswith("Intensity")):
-                    #logging.info("Intensity:" + fields[i])
-                    if getattr(m,fields[i]) > 0:
-                        flag = {}
-                        flag["Type"] = FlagLookup[fields[i].replace("Intensity", "")]
-                        flag["Intensity"] = getattr(m,fields[i])
-
-                        if (fields[i].replace("Intensity", "") != "adsbFlags"):
-                            if flag["Intensity"] >= 3:
-                                self.autopilotTriggerContingency = True
-
-                        detailValue = getattr(m,fields[i].replace("Intensity", "Detail"))
-                        if detailValue > 0:
-                            flag["DetailID"] = detailValue
-                            flag["Detail"] = detail_lookup(fields[i].replace("Intensity", ""),detailValue)
-
-                        flags["Flags"].append(flag)
-
-                i += 1
-            self.swoop_flags = flags
-
-        def detail_lookup(lookupIdentifier,value):
-            len(DetailLookup[lookupIdentifier])
-            lookup = []
-            i = len(DetailLookup[lookupIdentifier])
-
-            while i > 0:
-
-                if (value / 2**(i-1)) >= 1:
-                    value = value - (2**(i-1))
-                    lookup.append(DetailLookup[lookupIdentifier][i - 1])
-                i -= 1
-
-            return lookup
+            self._swoop_inflight_flags = m
 
 
-#{message:SWOOP_ARMING_FLAGS,value:SWOOP_ARMING_FLAGS {armingCheckStatus : 0, armingCheckFlags1 : 0, armingCheckFlags2 : 0, armingCheckFlags3 : 1}}
-#{message:SWOOP_STATUS,value:SWOOP_STATUS {flightStatus : 0, waypointType : 0, nextWaypointType : 0}}
-#{message:SWOOP_ENERGY,value:SWOOP_ENERGY {ForwardEndurance : 3516, ForwardHealth : 1, ForwardWHrPortionRemaining : 84, HoverEndurance : 0, HoverHealth : 0, HoverWHrPortionRemaining : 0, ForwardTimeToNextLanding : 0, ForwardTimeToEndOfMission : 0, HoverTimeToNextLanding : 0, HoverTimeToEndOfMission : 0}}
 
 
         self.flightStatus = None
-        self.waypointType = None
-        self.nextWaypointType = None
+        self.flightState = None
         self.waypointJumper = 0
         self.nextWaypoint = 0
-        @self.on_message('SWOOP_STATUS')
-        def listener_SWOOP_STATUS(self, name, m):
-            self.flightStatus = m.flightStatus
-            self.waypointType = m.waypointType
-            self.nextWaypointType = m.nextWaypointType
-            self.waypointJumper = m.waypointJumper
-            self.nextWaypoint = m.nextWaypoint
+        # @self.on_message('SWOOP_STATUS')
+        # def listener_SWOOP_STATUS(self, name, m):
+        #     self.flightStatus = m.flightStatus
+        #     self.flightState = m.flightStatus
+        #     self.previousWaypoint = m.previousWaypoint
+        #     self.currentWaypoint = m.currentWaypoint
+        #     self.nextNavWaypoint = m.nextNavWaypoint
+        #     self.nextWaypointType = m.nextWaypointType
+        #     self.waypointJumper = m.waypointJumper
+        #     self.nextWaypoint = m.nextWaypoint
+
+
 
         self.ForwardEndurance = None
         self.ForwardWHrPortionRemaining = None
@@ -1387,7 +1047,6 @@ class Vehicle(HasObservers):
         self.HoverHealth = None
         self.HoverWHrPortionRemaining = None
         self.ForwardEnduranceReserve = None
-
         self.etr = {}
 
         @self.on_message('SWOOP_ENERGY')
@@ -1413,22 +1072,10 @@ class Vehicle(HasObservers):
 
 
 
-        self._mount_pitch = None
-        self._mount_yaw = None
-        self._mount_roll = None
-
-        @self.on_message('MOUNT_STATUS')
-        def listener(self, name, m):
-            self._mount_pitch = m.pointing_a / 100.0
-            self._mount_roll = m.pointing_b / 100.0
-            self._mount_yaw = m.pointing_c / 100.0
-            self.notify_attribute_listeners('mount', self.mount_status)
-
         self._capabilities = None
         self._raw_version = None
         self._autopilot_version_msg_count = 0
         self._autopilotVersion = {}
-
         @self.on_message('AUTOPILOT_VERSION')
         def listener(vehicle, name, m):
             self._capabilities = m.capabilities
@@ -1446,69 +1093,19 @@ class Vehicle(HasObservers):
                 vehicle.remove_message_listener('HEARTBEAT', self.send_capabilities_request)
             self.notify_attribute_listeners('autopilot_version', self._raw_version)
 
-        # gimbal
-        self._gimbal = Gimbal(self)
-
-        # All keys are strings.
-        self._channels = Channels(self, 8)
-
-        @self.on_message(['RC_CHANNELS_RAW', 'RC_CHANNELS'])
-        def listener(self, name, m):
-            def set_rc(chnum, v):
-                '''Private utility for handling rc channel messages'''
-                # use port to allow ch nums greater than 8
-                port = 0 if name == "RC_CHANNELS" else m.port
-                self._channels._update_channel(str(port * 8 + chnum), v)
-
-            for i in range(1, (18 if name == "RC_CHANNELS" else 8)+1):
-                set_rc(i, getattr(m, "chan{}_raw".format(i)))
-
-            self.notify_attribute_listeners('channels', self.channels)
-
-        self._voltage = None
-        self._current = None
-        self._level = None
 
         @self.on_message('SYS_STATUS')
         def listener(self, name, m):
             self._voltage = m.voltage_battery
             self._current = m.current_battery
             self._level = m.battery_remaining
-            self.notify_attribute_listeners('battery', self.battery)
 
-        self._eph = None
-        self._epv = None
-        self._satellites_visible = None
-        self._fix_type = None  # FIXME support multiple GPSs per vehicle - possibly by using componentId
-
-        @self.on_message('GPS_RAW_INT')
-        def listener(self, name, m):
-            self._eph = m.eph
-            self._epv = m.epv
-            self._satellites_visible = m.satellites_visible
-            self._fix_type = m.fix_type
-            self.notify_attribute_listeners('gps_0', self.gps_0)
 
         self._current_waypoint = 0
-
         @self.on_message(['WAYPOINT_CURRENT', 'MISSION_CURRENT'])
         def listener(self, name, m):
             self._current_waypoint = m.seq
 
-        self._ekf_poshorizabs = False
-        self._ekf_constposmode = False
-        self._ekf_predposhorizabs = False
-
-        @self.on_message('EKF_STATUS_REPORT')
-        def listener(self, name, m):
-            # boolean: EKF's horizontal position (absolute) estimate is good
-            self._ekf_poshorizabs = (m.flags & ardupilotmega.EKF_POS_HORIZ_ABS) > 0
-            # boolean: EKF is in constant position mode and does not know it's absolute or relative position
-            self._ekf_constposmode = (m.flags & ardupilotmega.EKF_CONST_POS_MODE) > 0
-            # boolean: EKF's predicted horizontal position (absolute) estimate is good
-            self._ekf_predposhorizabs = (m.flags & ardupilotmega.EKF_PRED_POS_HORIZ_ABS) > 0
-
-            self.notify_attribute_listeners('ekf_ok', self.ekf_ok, cache=True)
 
         self._flightmode = 'AUTO'
         self._armed = False
@@ -1533,7 +1130,6 @@ class Vehicle(HasObservers):
                 self._flightmode = self._mode_mapping_bynumber[m.custom_mode]
             self.notify_attribute_listeners('mode', self.mode, cache=True)
             self._system_status = m.system_status
-            self.notify_attribute_listeners('system_status', self.system_status, cache=True)
 
         # Waypoints.
 
@@ -1551,11 +1147,6 @@ class Vehicle(HasObservers):
                 self._wploader.clear()
                 self._wploader.expected_count = msg.count
                 self._master.waypoint_request_send(0)
-
-        @self.on_message(['HOME_POSITION'])
-        def listener(self, name, msg):
-            self._home_location = LocationGlobal(msg.latitude / 1.0e7, msg.longitude / 1.0e7, msg.altitude / 1000.0)
-            self.notify_attribute_listeners('home_location', self.home_location, cache=True)
 
         @self.on_message(['WAYPOINT', 'MISSION_ITEM'])
         def listener(self, name, msg):
@@ -1946,87 +1537,45 @@ class Vehicle(HasObservers):
             self._master.set_mode(self._mode_mapping[v.name])
 
     @property
-    def location(self):
+    def swoopstatus(self):
         """
-        The vehicle location in global, global relative and local frames (:py:class:`Locations`).
-
-        The different frames are accessed through its members:
-
-        * :py:attr:`global_frame <dronekit.Locations.global_frame>` (:py:class:`LocationGlobal`)
-        * :py:attr:`global_relative_frame <dronekit.Locations.global_relative_frame>` (:py:class:`LocationGlobalRelative`)
-        * :py:attr:`local_frame <dronekit.Locations.local_frame>` (:py:class:`LocationLocal`)
-
-        For example, to print the location in each frame for a ``vehicle``:
-
-        .. code-block:: python
-
-            # Print location information for `vehicle` in all frames (default printer)
-            print "Global Location: %s" % vehicle.location.global_frame
-            print "Global Location (relative altitude): %s" % vehicle.location.global_relative_frame
-            print "Local Location: %s" % vehicle.location.local_frame    #NED
-
-            # Print altitudes in the different frames (see class definitions for other available information)
-            print "Altitude (global frame): %s" % vehicle.location.global_frame.alt
-            print "Altitude (global relative frame): %s" % vehicle.location.global_relative_frame.alt
-            print "Altitude (NED frame): %s" % vehicle.location.local_frame.down
-
-        .. note::
-
-            All the location "values" (e.g. ``global_frame.lat``) are initially
-            created with value ``None``. The ``global_frame``, ``global_relative_frame``
-            latitude and longitude values are populated shortly after initialisation but
-            ``global_frame.alt`` may take a few seconds longer to be updated.
-            The ``local_frame`` does not populate until the vehicle is armed.
-
-        The attribute and its members are observable. To watch for changes in all frames using a listener
-        created using a decorator (you can also define a listener and explicitly add it).
-
-        .. code-block:: python
-
-            @vehicle.on_attribute('location')
-            def listener(self, attr_name, value):
-                # `self`: :py:class:`Vehicle` object that has been updated.
-                # `attr_name`: name of the observed attribute - 'location'
-                # `value` is the updated attribute value (a :py:class:`Locations`). This can be queried for the frame information
-                print " Global: %s" % value.global_frame
-                print " GlobalRelative: %s" % value.global_relative_frame
-                print " Local: %s" % value.local_frame
-
-        To watch for changes in just one attribute (in this case ``global_frame``):
-
-        .. code-block:: python
-
-            @vehicle.on_attribute('location.global_frame')
-            def listener(self, attr_name, value):
-                # `self`: :py:class:`Locations` object that has been updated.
-                # `attr_name`: name of the observed attribute - 'global_frame'
-                # `value` is the updated attribute value.
-                print " Global: %s" % value
-
-            #Or watch using decorator: ``@vehicle.location.on_attribute('global_frame')``.
+        SwoopStatus (:py:class:`SwoopStatus`).
         """
-        return self._location
+        return SwoopStatus(self._swoopstatus_flightStatus, self._swoopstatus_flightState, self._swoopstatus_previousWaypoint,self._swoopstatus_currentWaypoint,self._swoopstatus_nextNavWaypoint,self._swoopstatus_waypointJumper,self._swoopstatus_turnAroundOk,self._swoopstatus_forwardDiversionOk)
 
     @property
-    def battery(self):
+    def position(self):
         """
-        Current system batter status (:py:class:`Battery`).
+        SwoopPosition (:py:class:`SwoopPosition`).
         """
-        if self._voltage is None or self._current is None or self._level is None:
-            return None
-        return Battery(self._voltage, self._current, self._level)
+        return Position(self._location.global_frame.lat, self._location.global_frame.lon, self._location.global_frame.alt, self._rngfnd_distance, self._track, self._heading)
+
+
 
     @property
-    def rangefinder(self):
+    def speed(self):
         """
-        Rangefinder distance and voltage values (:py:class:`Rangefinder`).
+        Speed (:py:class:`Speed`).
         """
-        return Rangefinder(self._rngfnd_distance, self._rngfnd_voltage)
+        return Speed(self._groundspeed, self._airspeed, self._trueAirspeed, self._trueTrimSpeed,  self.climb)
+    
+    
+    # @property 
+    # def speedtas(self):
+    #     speedtas = {}
+    #     speedtas['TAS'] = self._trueAirspeed
+    #     speedtas['forwardSetTAS'] = self._trueTrimSpeed
+    #     speedtas['airspeedMultiplierTAS'] = self._trueAirspeedMultiplier
+    #     return speedtas
 
-    @property 
-    def vfrhud(self):
-        
-        return VFRHUD(self.climb)
+    # @property 
+    # def speed(self):
+    #     speed = {}
+    #     speed['ground'] = round(self.groundspeed * 1.94384) # Converts to knot
+    #     speed['air'] = round(self.airspeed * 1.94384)       # Converts to knot
+    #     speed['climb'] = self.climb
+    #     return speed
+
 
     @property 
     def winddetails(self):
@@ -2068,87 +1617,22 @@ class Vehicle(HasObservers):
         battery['remaining'] = self.ForwardWHrPortionRemaining
         battery['health'] = self.ForwardHealth
         return battery
-
-    @property 
-    def speedtas(self):
-        speedtas = {}
-        speedtas['TAS'] = self.trueAirspeed
-        speedtas['forwardSetTAS'] = self.trueTrimSpeed
-        speedtas['airspeedMultiplierTAS'] = self.trueAirspeedMultiplier
-        speedtas['hoverSetClimbSpeed'] = self.parameters['Q_WP_SPEED_UP'] / 100
-        speedtas['hoverSetDescendSpeed'] = self.parameters['Q_WP_SPEED_DN'] / 100
-        return speedtas
-
-    @property 
-    def speed(self):
-        speed = {}
-        speed['ground'] = round(self.groundspeed * 1.94384) # Converts to knot
-        speed['air'] = round(self.airspeed * 1.94384)       # Converts to knot
-        speed['climb'] = self.climb
-        return speed
-
-
-    @property 
-    def position(self):
-        position = {}
-        position['lat'] =  self.location.global_frame.lat
-        position['lon'] =  self.location.global_frame.lon
-        position['alt'] =  round(self.location.global_frame.alt * 3.28084)
-        if self.rangefinder is not None and self.rangefinder.distance is not None:
-            position['lidar'] = round(self.rangefinder.distance * 3.28084)
-
-        position['track'] = round(self.track)
-        position['heading'] = self.heading
-        return position
-
-
-    @property 
-    
-    def gpsraw(self):
         
-        return GPSRaw(self.track)
-
     @property
-
     def sensorsoffsets(self):
-
         return SensorOffsets(self.pixhawktemp)
-
-    @property
-
-    def batterystatus(self):
-
-        return BatteryStatus(self.battery2_level)
-
-    @property
-
-    def battery2(self):
-
-        return Battery2(self.battery2_voltage,self.battery2_current)
-
-
-    @property
-
-    def swooparming(self):
-
-        return SwoopArming(self.swoop_armable, self.swoop_arming_check_flags)
     
     @property
-
-    def swoopinflightflags(self):
-        return SwoopInFlightFlags( self.swoop_flags, self.swoop_max_intensity, self.swoop_flag_intensities, self.swoop_flag_details)
-
-    @property
-    def swoopstatus(self):
-
-        return SwoopFlightStatus( self.swoop_status)
+    def flags(self):
+        return SwoopInFlightFlags(self._swoop_inflight_flags)
 
     @property
-    def velocity(self):
-        """
-        Current velocity as a three element list ``[ vx, vy, vz ]`` (in meter/sec).
-        """
-        return [self._vx, self._vy, self._vz]
+    def ready(self):
+        return SwoopArmingFlags(self._swoop_arming_flags)
+
+    # @property
+    # def swoopstatus(self):
+    #     return SwoopFlightStatus(self.swoop_status)
 
     @property
     def version(self):
@@ -2168,19 +1652,6 @@ class Vehicle(HasObservers):
         """
         return Capabilities(self._capabilities)
 
-    @property
-    def attitude(self):
-        """
-        Current vehicle attitude - pitch, yaw, roll (:py:class:`Attitude`).
-        """
-        return Attitude(self._pitch, self._yaw, self._roll)
-
-    @property
-    def gps_0(self):
-        """
-        GPS position information (:py:class:`GPSInfo`).
-        """
-        return GPSInfo(self._eph, self._epv, self._fix_type, self._satellites_visible)
 
     @property
     def armed(self):
@@ -2210,231 +1681,12 @@ class Vehicle(HasObservers):
             else:
                 self._master.arducopter_disarm()
 
-    @property
-    def is_armable(self):
-        """
-        Returns ``True`` if the vehicle is ready to arm, false otherwise (``Boolean``).
-
-        This attribute wraps a number of pre-arm checks, ensuring that the vehicle has booted,
-        has a good GPS fix, and that the EKF pre-arm is complete.
-        """
-        # check that mode is not INITIALSING
-        # check that we have a GPS fix
-        # check that EKF pre-arm is complete
-        return self.mode != 'INITIALISING' and (self.gps_0.fix_type is not None and self.gps_0.fix_type > 1) and self._ekf_predposhorizabs
-
-    @property
-    def system_status(self):
-        """
-        System status (:py:class:`SystemStatus`).
-
-        The status has a ``state`` property with one of the following values:
-
-        * ``UNINIT``: Uninitialized system, state is unknown.
-        * ``BOOT``: System is booting up.
-        * ``CALIBRATING``: System is calibrating and not flight-ready.
-        * ``STANDBY``: System is grounded and on standby. It can be launched any time.
-        * ``ACTIVE``: System is active and might be already airborne. Motors are engaged.
-        * ``CRITICAL``: System is in a non-normal flight mode. It can however still navigate.
-        * ``EMERGENCY``: System is in a non-normal flight mode. It lost control over parts
-          or over the whole airframe. It is in mayday and going down.
-        * ``POWEROFF``: System just initialized its power-down sequence, will shut down now.
-        """
-        return {
-            0: SystemStatus('UNINIT'),
-            1: SystemStatus('BOOT'),
-            2: SystemStatus('CALIBRATING'),
-            3: SystemStatus('STANDBY'),
-            4: SystemStatus('ACTIVE'),
-            5: SystemStatus('CRITICAL'),
-            6: SystemStatus('EMERGENCY'),
-            7: SystemStatus('POWEROFF'),
-        }.get(self._system_status, None)
-
-    @property
-    def heading(self):
-        """
-        Current heading in degrees - 0..360, where North = 0 (``int``).
-        """
-        return self._heading
 
     @property
     def lastHeartbeatTime(self):
         return self._lastHeartbeatTime
 
 
-    @property
-    def groundspeed(self):
-        """
-        Current groundspeed in metres/second (``double``).
-
-        This attribute is settable. The set value is the default target groundspeed
-        when moving the vehicle using :py:func:`simple_goto` (or other position-based
-        movement commands).
-        """
-        return self._groundspeed
-
-    @groundspeed.setter
-    def groundspeed(self, speed):
-        speed_type = 1  # ground speed
-        msg = self.message_factory.command_long_encode(
-            0, 0,    # target system, target component
-            mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,  # command
-            0,  # confirmation
-            speed_type,  # param 1
-            speed,  # speed in metres/second
-            -1, 0, 0, 0, 0  # param 3 - 7
-        )
-
-        # send command to vehicle
-        self.send_mavlink(msg)
-
-    @property
-    def airspeed(self):
-        """
-        Current airspeed in metres/second (``double``).
-
-        This attribute is settable. The set value is the default target airspeed
-        when moving the vehicle using :py:func:`simple_goto` (or other position-based
-        movement commands).
-        """
-        return self._airspeed
-
-    @airspeed.setter
-    def airspeed(self, speed):
-        speed_type = 0  # air speed
-        msg = self.message_factory.command_long_encode(
-            0, 0,    # target system, target component
-            mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED,  # command
-            0,  # confirmation
-            speed_type,  # param 1
-            speed,  # speed in metres/second
-            -1, 0, 0, 0, 0  # param 3 - 7
-        )
-
-        # send command to vehicle
-        self.send_mavlink(msg)
-
-    @property
-    def gimbal(self):
-        """
-        Gimbal object for controlling, viewing and observing gimbal status (:py:class:`Gimbal`).
-
-        .. versionadded:: 2.0.1
-        """
-        return self._gimbal
-
-    @property
-    def mount_status(self):
-        """
-        .. warning:: This method is deprecated. It has been replaced by :py:attr:`gimbal`.
-
-        Current status of the camera mount (gimbal) as a three element list: ``[ pitch, yaw, roll ]``.
-
-        The values in the list are set to ``None`` if no mount is configured.
-        """
-        return [self._mount_pitch, self._mount_yaw, self._mount_roll]
-
-    @property
-    def ekf_ok(self):
-        """
-        ``True`` if the EKF status is considered acceptable, ``False`` otherwise (``boolean``).
-        """
-        # legacy check for dronekit-python for solo
-        # use same check that ArduCopter::system.pde::position_ok() is using
-        if self.armed:
-            return self._ekf_poshorizabs and not self._ekf_constposmode
-        else:
-            return self._ekf_poshorizabs or self._ekf_predposhorizabs
-
-    @property
-    def channels(self):
-        """
-        The RC channel values from the RC Transmitter (:py:class:`Channels`).
-
-        The attribute can also be used to set and read RC Override (channel override) values
-        via :py:attr:`Vehicle.channels.override <dronekit.Channels.overrides>`.
-
-        For more information and examples see :ref:`example_channel_overrides`.
-
-        To read the channels from the RC transmitter:
-
-        .. code:: python
-
-            # Get all channel values from RC transmitter
-            print "Channel values from RC Tx:", vehicle.channels
-
-            # Access channels individually
-            print "Read channels individually:"
-            print " Ch1: %s" % vehicle.channels['1']
-            print " Ch2: %s" % vehicle.channels['2']
-
-        """
-        return self._channels
-
-    @property
-    def home_location(self):
-        """
-        The current home location (:py:class:`LocationGlobal`).
-
-        To get the attribute you must first download the :py:func:`Vehicle.commands`.
-        The attribute has a value of ``None`` until :py:func:`Vehicle.commands` has been downloaded
-        **and** the autopilot has set an initial home location (typically where the vehicle first gets GPS lock).
-
-        .. code-block:: python
-
-            #Connect to a vehicle object (for example, on com14)
-            vehicle = connect('com14', wait_ready=True)
-
-            # Download the vehicle waypoints (commands). Wait until download is complete.
-            cmds = vehicle.commands
-            cmds.download()
-            cmds.wait_ready()
-
-            # Get the home location
-            home = vehicle.home_location
-
-        The ``home_location`` is not observable.
-
-        The attribute can be written (in the same way as any other attribute) after it has successfully
-        been populated from the vehicle. The value sent to the vehicle is cached in the attribute
-        (and can potentially get out of date if you don't re-download ``Vehicle.commands``):
-
-        .. warning::
-
-            Setting the value will fail silently if the specified location is more than 50km from the EKF origin.
-
-
-        """
-        return copy.copy(self._home_location)
-
-    @home_location.setter
-    def home_location(self, pos):
-        """
-        Sets the home location (``LocationGlobal``).
-
-        The value cannot be set until it has successfully been read from the vehicle. After being
-        set the value is cached in the home_location attribute and does not have to be re-read.
-
-        .. note::
-
-            Setting the value will fail silently if the specified location is more than 50km from the EKF origin.
-        """
-
-        if not isinstance(pos, LocationGlobal):
-            raise ValueError('Expecting home_location to be set to a LocationGlobal.')
-
-        # Set cached home location.
-        self._home_location = copy.copy(pos)
-
-        # Send MAVLink update.
-        self.send_mavlink(self.message_factory.command_long_encode(
-            0, 0,  # target system, target component
-            mavutil.mavlink.MAV_CMD_DO_SET_HOME,  # command
-            0,  # confirmation
-            0,  # param 1: 1 to use current position, 0 to use the entered values.
-            0, 0, 0,  # params 2-4
-            pos.lat, pos.lon, pos.alt))
 
     @property
     def commands(self):
@@ -2471,17 +1723,6 @@ class Vehicle(HasObservers):
 
             time.sleep(interval)
 
-    def wait_for_armable(self, timeout=None):
-        '''Wait for the vehicle to become armable.
-
-        If timeout is nonzero, raise a TimeoutError if the vehicle
-        is not armable after timeout seconds.
-        '''
-
-        def check_armable():
-            return self.is_armable
-
-        self.wait_for(check_armable, timeout=timeout)
 
     def arm(self, wait=True, timeout=None):
         '''Arm the vehicle.
@@ -2510,6 +1751,7 @@ class Vehicle(HasObservers):
             self.wait_for(lambda: not self.armed, timeout=timeout,
                           errmsg='failed to disarm vehicle')
 
+
     def wait_for_mode(self, mode, timeout=None):
         '''Set the flight mode.
 
@@ -2527,126 +1769,6 @@ class Vehicle(HasObservers):
                       timeout=timeout,
                       errmsg='failed to set flight mode')
 
-    def wait_for_alt(self, alt, epsilon=0.1, rel=True, timeout=None):
-        '''Wait for the vehicle to reach the specified altitude.
-
-        Wait for the vehicle to get within epsilon meters of the
-        given altitude.  If rel is True (the default), use the
-        global_relative_frame. If rel is False, use the global_frame.
-        If timeout is nonzero, raise a TimeoutError if the specified
-        altitude has not been reached after timeout seconds.
-        '''
-
-        def get_alt():
-            if rel:
-                alt = self.location.global_relative_frame.alt
-            else:
-                alt = self.location.global_frame.alt
-
-            return alt
-
-        def check_alt():
-            cur = get_alt()
-            delta = abs(alt - cur)
-
-            return (
-                (delta < epsilon) or
-                (cur > alt > start) or
-                (cur < alt < start)
-            )
-
-        start = get_alt()
-
-        self.wait_for(
-            check_alt,
-            timeout=timeout,
-            errmsg='failed to reach specified altitude')
-
-    def wait_simple_takeoff(self, alt=None, epsilon=0.1, timeout=None):
-        self.simple_takeoff(alt)
-
-        if alt is not None:
-            self.wait_for_alt(alt, epsilon=epsilon, timeout=timeout)
-
-    def simple_takeoff(self, alt=None):
-        """
-        Take off and fly the vehicle to the specified altitude (in metres) and then wait for another command.
-
-        .. note::
-
-            This function should only be used on Copter vehicles.
-
-
-        The vehicle must be in GUIDED mode and armed before this is called.
-
-        There is no mechanism for notification when the correct altitude is reached,
-        and if another command arrives before that point (e.g. :py:func:`simple_goto`) it will be run instead.
-
-        .. warning::
-
-           Apps should code to ensure that the vehicle will reach a safe altitude before
-           other commands are executed. A good example is provided in the guide topic :doc:`guide/taking_off`.
-
-        :param alt: Target height, in metres.
-        """
-        if alt is not None:
-            altitude = float(alt)
-            if math.isnan(altitude) or math.isinf(altitude):
-                raise ValueError("Altitude was NaN or Infinity. Please provide a real number")
-            self._master.mav.command_long_send(0, 0, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
-                                               0, 0, 0, 0, 0, 0, 0, altitude)
-
-    def simple_goto(self, location, airspeed=None, groundspeed=None):
-        '''
-        Go to a specified global location (:py:class:`LocationGlobal` or :py:class:`LocationGlobalRelative`).
-
-        There is no mechanism for notification when the target location is reached, and if another command arrives
-        before that point that will be executed immediately.
-
-        You can optionally set the desired airspeed or groundspeed (this is identical to setting
-        :py:attr:`airspeed` or :py:attr:`groundspeed`). The vehicle will determine what speed to
-        use if the values are not set or if they are both set.
-
-        The method will change the :py:class:`VehicleMode` to ``GUIDED`` if necessary.
-
-        .. code:: python
-
-            # Set mode to guided - this is optional as the simple_goto method will change the mode if needed.
-            vehicle.mode = VehicleMode("GUIDED")
-
-            # Set the LocationGlobal to head towards
-            a_location = LocationGlobal(-34.364114, 149.166022, 30)
-            vehicle.simple_goto(a_location)
-
-        :param location: The target location (:py:class:`LocationGlobal` or :py:class:`LocationGlobalRelative`).
-        :param airspeed: Target airspeed in m/s (optional).
-        :param groundspeed: Target groundspeed in m/s (optional).
-        '''
-        if isinstance(location, LocationGlobalRelative):
-            frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
-            alt = location.alt
-        elif isinstance(location, LocationGlobal):
-            # This should be the proper code:
-            # frame = mavutil.mavlink.MAV_FRAME_GLOBAL
-            # However, APM discards information about the relative frame
-            # and treats any alt value as relative. So we compensate here.
-            frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
-            if not self.home_location:
-                self.commands.download()
-                self.commands.wait_ready()
-            alt = location.alt - self.home_location.alt
-        else:
-            raise ValueError('Expecting location to be LocationGlobal or LocationGlobalRelative.')
-
-        self._master.mav.mission_item_send(0, 0, 0, frame,
-                                           mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 2, 0, 0,
-                                           0, 0, 0, location.lat, location.lon,
-                                           alt)
-
-        if airspeed is not None:
-            self.airspeed = airspeed
-        if groundspeed is not None:
-            self.groundspeed = groundspeed
 
     def send_mavlink(self, message):
         """
@@ -2957,189 +2079,6 @@ class Vehicle(HasObservers):
             0,  # param 7, 1: ESC calibration, 3: barometer temperature calibration
         )
         self.send_mavlink(calibration_command)
-
-
-class Gimbal(object):
-    """
-    Gimbal status and control.
-
-    An object of this type is returned by :py:attr:`Vehicle.gimbal`. The
-    gimbal orientation can be obtained from its :py:attr:`roll`, :py:attr:`pitch` and
-    :py:attr:`yaw` attributes.
-
-    The gimbal orientation can be set explicitly using :py:func:`rotate`
-    or you can set the gimbal (and vehicle) to track a specific "region of interest" using
-    :py:func:`target_location`.
-
-    .. note::
-
-        * The orientation attributes are created with values of ``None``. If a gimbal is present,
-          the attributes are populated shortly after initialisation by messages from the autopilot.
-        * The attribute values reflect the last gimbal setting-values rather than actual measured values.
-          This means that the values won't change if you manually move the gimbal, and that the value
-          will change when you set it, even if the specified orientation is not supported.
-        * A gimbal may not support all axes of rotation. For example, the Solo gimbal will set pitch
-          values from 0 to -90 (straight ahead to straight down), it will rotate the vehicle to follow specified
-          yaw values, and will ignore roll commands (not supported).
-    """
-
-    def __init__(self, vehicle):
-        super(Gimbal, self).__init__()
-
-        self._pitch = None
-        self._roll = None
-        self._yaw = None
-        self._vehicle = vehicle
-
-        @vehicle.on_message('MOUNT_STATUS')
-        def listener(vehicle, name, m):
-            self._pitch = m.pointing_a / 100.0
-            self._roll = m.pointing_b / 100.0
-            self._yaw = m.pointing_c / 100.0
-            vehicle.notify_attribute_listeners('gimbal', vehicle.gimbal)
-
-        @vehicle.on_message('MOUNT_ORIENTATION')
-        def listener(vehicle, name, m):
-            self._pitch = m.pitch
-            self._roll = m.roll
-            self._yaw = m.yaw
-            vehicle.notify_attribute_listeners('gimbal', vehicle.gimbal)
-
-    @property
-    def pitch(self):
-        """
-        Gimbal pitch in degrees relative to the vehicle (see diagram for :ref:`attitude <figure_attitude>`).
-        A value of 0 represents a camera pointed straight ahead relative to the front of the vehicle,
-        while -90 points the camera straight down.
-
-        .. note::
-
-            This is the last pitch value sent to the gimbal (not the actual/measured pitch).
-        """
-        return self._pitch
-
-    @property
-    def roll(self):
-        """
-        Gimbal roll in degrees relative to the vehicle (see diagram for :ref:`attitude <figure_attitude>`).
-
-        .. note::
-
-            This is the last roll value sent to the gimbal (not the actual/measured roll).
-        """
-        return self._roll
-
-    @property
-    def yaw(self):
-        """
-        Gimbal yaw in degrees relative to *global frame* (0 is North, 90 is West, 180 is South etc).
-
-        .. note::
-
-            This is the last yaw value sent to the gimbal (not the actual/measured yaw).
-        """
-        return self._yaw
-
-    def rotate(self, pitch, roll, yaw):
-        """
-        Rotate the gimbal to a specific vector.
-
-        .. code-block:: python
-
-            #Point the gimbal straight down
-            vehicle.gimbal.rotate(-90, 0, 0)
-
-        :param pitch: Gimbal pitch in degrees relative to the vehicle (see diagram for :ref:`attitude <figure_attitude>`).
-            A value of 0 represents a camera pointed straight ahead relative to the front of the vehicle,
-            while -90 points the camera straight down.
-        :param roll: Gimbal roll in degrees relative to the vehicle (see diagram for :ref:`attitude <figure_attitude>`).
-        :param yaw: Gimbal yaw in degrees relative to *global frame* (0 is North, 90 is West, 180 is South etc.)
-        """
-        msg = self._vehicle.message_factory.mount_configure_encode(
-            0, 1,    # target system, target component
-            mavutil.mavlink.MAV_MOUNT_MODE_MAVLINK_TARGETING,  #mount_mode
-            1,  # stabilize roll
-            1,  # stabilize pitch
-            1,  # stabilize yaw
-        )
-        self._vehicle.send_mavlink(msg)
-        msg = self._vehicle.message_factory.mount_control_encode(
-            0, 1,    # target system, target component
-            pitch * 100,  # pitch is in centidegrees
-            roll * 100,  # roll
-            yaw * 100,  # yaw is in centidegrees
-            0  # save position
-        )
-        self._vehicle.send_mavlink(msg)
-
-    def target_location(self, roi):
-        """
-        Point the gimbal at a specific region of interest (ROI).
-
-        .. code-block:: python
-
-            #Set the camera to track the current home location.
-            vehicle.gimbal.target_location(vehicle.home_location)
-
-        The target position must be defined in a :py:class:`LocationGlobalRelative` or :py:class:`LocationGlobal`.
-
-        This function can be called in AUTO or GUIDED mode.
-
-        In order to clear an ROI you can send a location with all zeros (e.g. ``LocationGlobalRelative(0,0,0)``).
-
-        :param roi: Target location in global relative frame.
-        """
-        # set gimbal to targeting mode
-        msg = self._vehicle.message_factory.mount_configure_encode(
-            0, 1,    # target system, target component
-            mavutil.mavlink.MAV_MOUNT_MODE_GPS_POINT,  # mount_mode
-            1,  # stabilize roll
-            1,  # stabilize pitch
-            1,  # stabilize yaw
-        )
-        self._vehicle.send_mavlink(msg)
-
-        # Get altitude relative to home irrespective of Location object passed in.
-        if isinstance(roi, LocationGlobalRelative):
-            alt = roi.alt
-        elif isinstance(roi, LocationGlobal):
-            if not self.home_location:
-                self.commands.download()
-                self.commands.wait_ready()
-            alt = roi.alt - self.home_location.alt
-        else:
-            raise ValueError('Expecting location to be LocationGlobal or LocationGlobalRelative.')
-
-        # set the ROI
-        msg = self._vehicle.message_factory.command_long_encode(
-            0, 1,    # target system, target component
-            mavutil.mavlink.MAV_CMD_DO_SET_ROI,  # command
-            0,  # confirmation
-            0, 0, 0, 0,  # params 1-4
-            roi.lat,
-            roi.lon,
-            alt
-        )
-        self._vehicle.send_mavlink(msg)
-
-    def release(self):
-        """
-        Release control of the gimbal to the user (RC Control).
-
-        This should be called once you've finished controlling the mount with either :py:func:`rotate`
-        or :py:func:`target_location`. Control will automatically be released if you change vehicle mode.
-        """
-        msg = self._vehicle.message_factory.mount_configure_encode(
-            0, 1,    # target system, target component
-            mavutil.mavlink.MAV_MOUNT_MODE_RC_TARGETING,  # mount_mode
-            1,  # stabilize roll
-            1,  # stabilize pitch
-            1,  # stabilize yaw
-        )
-        self._vehicle.send_mavlink(msg)
-
-    def __str__(self):
-        return "Gimbal: pitch={0}, roll={1}, yaw={2}".format(self.pitch, self.roll, self.yaw)
 
 
 class Parameters(collections.MutableMapping, HasObservers):
