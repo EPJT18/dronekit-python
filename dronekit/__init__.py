@@ -81,6 +81,8 @@ DetailLookup["precisionLanding"] = ["Target Not Found", "Using GPS", "Using Next
 ARMING_CHECK_IRREGULAR_LENGTH = 29
 ARMING_CHECK_COMMON_LENGTH    = 12
 FLAGS_LENGTH                  = 23
+MStoKnotsConversionFactor = 1.94384 
+MeterstoFeettConversionFactor = 3.28084
 
 def bit_format(length, value):
     if value.bit_length() > length:
@@ -88,6 +90,27 @@ def bit_format(length, value):
         logging.error("%d unknown flags or details were raised. Number of bits incorrect." % extra_bits)
     return ('{:0%db}'%length).format(value)[-length:]  # ensure correct number of bits
 
+
+class flightStatus(Enum):
+    DISSARMED_ON_GROUND = 0
+    MOTORS_IDLING = 1
+    TAKEOFF = 2
+    TRANSITION_TO_FORWARD_FLIGHT = 3
+    FORWARD_FLIGHT = 4
+    TRANSITION_TO_HOVER = 5
+    SEARCHING_FOR_TARGET = 6
+    LANDING = 7
+    ORBIT = 8
+    EMERGENCY_LAND = 9
+    PARACHUTE_DEPLOYED = 10
+    ABORTING_TAKEOFF = 11
+    ABNORMAL = 12
+    NONE = 13
+
+class navigationState(Enum):
+    STRAIT = 0
+    TURN = 1
+    ORBIT_STATE = 2
 
 class APIException(Exception):
     """
@@ -155,6 +178,11 @@ class SwoopStatus(object):
     def __str__(self):
         return "Swoop Status: Status={}, State={}, Previous Waypoint:{} Type:{}, Current Waypoint={} Type={}, Next Nav Waypoint={} Type={}, Jumper={}, Turn Around Ok={}, Forward Diversion Ok={}".format(self.flightStatus, self.navigationState, self.previousNavWaypointIndex, self.previousWaypointType, self.currentNavWaypointIndex, self.currentWaypointType, self.nextNavWaypointIndex, self.nextWaypointType, self.waypointJumper, self.turnAroundOK, self.forwardDivertOK  )
 
+    def statusText(self):
+        return flightStatus(self.flightStatus).name
+    
+    def navStateText(self):
+        return navigationState(self.navigationState).name
 
 class Position(object):
     """
@@ -166,8 +194,8 @@ class Position(object):
     def __init__(self, lat, lon, altMeters, lidarMeters,track,heading):
         self.lat = lat
         self.lon = lon
-        self.alt = round(altMeters * 3.28084)
-        self.lidar = round(lidarMeters * 3.28084)
+        self.alt = round(altMeters * MeterstoFeettConversionFactor)
+        self.lidar = round(lidarMeters * MeterstoFeettConversionFactor)
         self.track = track
         self.heading =  heading
 
@@ -175,7 +203,8 @@ class Position(object):
         return "Swoop Position: lat={}, lon={}, alt={}, lidar={}, track={}, heading={}".format(self.lat, self.lon,self.alt,self.lidar,self.track,self.heading)
 
     def alt_mtrs(self):
-        return self.alt / 3.28084
+        return self.alt / MeterstoFeettConversionFactor
+
 
 class Speed(object):
     """
@@ -184,28 +213,61 @@ class Speed(object):
     An object of this type is returned by :py:attr:`Vehicle.swoopstatus`.
     """
     def __init__(self, groundspeed, airspeed, TAS, TAS_Set, climb):
-        self.ground = round(groundspeed * 1.94384) # Converts to knot
-        self.air = round(airspeed * 1.94384) # Converts to knot
-        self.TAS = round(TAS * 1.94384*10)/10
-        self.TAS_Set = round(TAS_Set * 1.94384*10)/10
+        # Converts each to knot
+        self.ground = round(groundspeed * MStoKnotsConversionFactor*10)/10
+        self.air = round(airspeed * MStoKnotsConversionFactor*10)/10
+        self.TAS = round(TAS * MStoKnotsConversionFactor*10)/10
+        self.TAS_Set = round(TAS_Set * MStoKnotsConversionFactor*10)/10
         self.climb = climb
 
     def __str__(self):
         return "Swoop Speed: groundspeed={}, airspeed={}, TAS={}, TAS_Set={}, climb={}".format(self.ground, self.air,self.TAS,self.TAS_Set,self.climb)
     
     def ground_ms(self):
-        return self.ground / 1.94384
+        return self.ground / MStoKnotsConversionFactor
 
     def air_ms(self):
-        return self.air / 1.94384
+        return self.air / MStoKnotsConversionFactor
 
     def TAS_Set_ms(self):
-        return self.TAS_Set / 1.94384
+        return self.TAS_Set / MStoKnotsConversionFactor
 
 
 class WindDetails(object):
-    def __init__(self, wind):
-        self.windDetails = wind
+    def __init__(self, status, wind, savedWind):
+        self.status = status
+        self.direction = wind.direction
+        self.speed = wind.speed
+        self.speed_z = wind.speed_z
+
+        if savedWind is None:
+            self.savedDirection = 0
+            self.savedSpeed = 0
+            self.savedSpeed_z = 0
+        else:
+            self.savedDirection = wind.direction
+            self.savedSpeed = wind.speed
+            self.savedSpeed_z = wind.speed_z
+    
+    def knots(self,d,s,sz):
+        return [round(d), round(s* MStoKnotsConversionFactor,1), round(sz* MStoKnotsConversionFactor,1)]
+
+    def ms(self,d,s,sz):
+        return [d,s,sz]
+
+    def wind_dict_knots(self,d,s,sz):
+        return self.knots(self.direction,self.speed,self.speed_z)
+
+    def wind_bestreference_ms(self):
+        if (self.status in ['FORWARD_FLIGHT','EMERGENCY_LAND']):
+            return self.ms(self.direction,self.speed,self.speed_z)
+        else:
+            return self.ms(self.savedDirection,self.savedSpeed,self.savedSpeed_z)
+
+    def __str__(self):
+        return "Wind: Direction={}, Speed={}m/s, Speed Z={}m/s".format(self.direction, self.speed, self.speed_z)
+    
+    
 
 class SensorOffsets(object):
     def __init__(self, temp):
@@ -1021,10 +1083,14 @@ class Vehicle(HasObservers):
         def listener_VFR_HUD(self, name, m):
             self.climb = round(m.climb)
 
-        self.windDetails = []
+        self.windDetails = None
+        self.savedWindDetails = None
         @self.on_message('WIND')
         def listener_WIND(self, name, m):
-            self.windDetails = [round(m.direction), round(m.speed* 1.94384,1), round(m.speed_z* 1.94384,1)]
+            self.windDetails = m
+
+            if (self._swoopstatus is not None and SwoopStatus(self._swoopstatus).statusText() in ['FORWARD_FLIGHT','EMERGENCY_LAND']):
+                self.savedWindDetails = m
 
         self._track = None
         @self.on_message('GPS_RAW_INT')
@@ -1607,7 +1673,7 @@ class Vehicle(HasObservers):
 
     @property
     def winddetails(self):
-        return self.windDetails
+        return WindDetails(SwoopStatus(self._swoopstatus).statusText(), self.windDetails, self.savedWindDetails)
 
     @property
     def batteryhv(self):
@@ -1648,19 +1714,23 @@ class Vehicle(HasObservers):
         
     @property
     def sensorsoffsets(self):
-        return SensorOffsets(self.pixhawktemp)
+        if self.pixhawktemp is not None:
+            return SensorOffsets(self.pixhawktemp)
     
     @property
     def flags(self):
-        return SwoopInFlightFlags(self._swoop_inflight_flags)
+        if self._swoop_inflight_flags is not None:
+            return SwoopInFlightFlags(self._swoop_inflight_flags)
 
     @property
     def ready(self):
-        return SwoopArmingFlags(self._swoop_arming_flags)
+        if self._swoop_arming_flags is not None:
+            return SwoopArmingFlags(self._swoop_arming_flags)
 
     @property
     def swoopstatus(self):
-        return SwoopStatus(self._swoopstatus)
+        if self._swoopstatus is not None:
+            return SwoopStatus(self._swoopstatus)
 
     @property
     def version(self):
