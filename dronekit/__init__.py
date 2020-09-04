@@ -112,6 +112,16 @@ class navigationState(Enum):
     TURN = 1
     ORBIT_STATE = 2
 
+
+class waypointType(Enum):
+    TAKEOFF = 84
+    LANDING = 85
+    WAYPOINT = 16
+    DO_JUMP = 177
+    LOITER_TURNS = 18
+    UNDEFINED = 0
+
+
 class APIException(Exception):
     """
     Base class for DroneKit related exceptions.
@@ -184,6 +194,25 @@ class SwoopStatus(object):
     def navStateText(self):
         return navigationState(self.navigationState).name
 
+    def rpsSummary(self):
+        status = {}
+        status['navigationState'] = navigationState(self.navigationState).name
+        status['previousWaypoint'] = {}
+        status['previousWaypoint']['id'] = self.previousNavWaypointIndex
+        status['previousWaypoint']['type'] = waypointType(self.previousWaypointType).name
+        status['currentWaypoint'] = {}
+        status['currentWaypoint']['id'] = self.currentNavWaypointIndex
+        status['currentWaypoint']['type'] = waypointType(self.currentWaypointType).name
+        status['nextNavWaypoint'] = {}
+        status['nextNavWaypoint']['id'] = self.nextNavWaypointIndex
+        status['nextNavWaypoint']['type'] = waypointType(self.nextWaypointType).name
+        status['jumpCounter'] = self.waypointJumper
+        status['turnAroundOK'] = self.turnAroundOK
+        status['forwardDivertOK'] = self.forwardDivertOK
+        
+        return status
+
+
 class Position(object):
     """
     Swoop Position
@@ -214,10 +243,10 @@ class Speed(object):
     """
     def __init__(self, groundspeed, airspeed, TAS, TAS_Set, climb):
         # Converts each to knot
-        self.ground = round(groundspeed * MStoKnotsConversionFactor*10)/10
-        self.air = round(airspeed * MStoKnotsConversionFactor*10)/10
-        self.TAS = round(TAS * MStoKnotsConversionFactor*10)/10
-        self.TAS_Set = round(TAS_Set * MStoKnotsConversionFactor*10)/10
+        self.ground = round(groundspeed * MStoKnotsConversionFactor)
+        self.air = round(airspeed * MStoKnotsConversionFactor)
+        self.TAS = round(TAS * MStoKnotsConversionFactor)
+        self.TAS_Set = round(TAS_Set * MStoKnotsConversionFactor)
         self.climb = climb
 
     def __str__(self):
@@ -255,7 +284,7 @@ class WindDetails(object):
     def ms(self,d,s,sz):
         return [d,s,sz]
 
-    def wind_dict_knots(self,d,s,sz):
+    def wind_dict_knots(self):
         return self.knots(self.direction,self.speed,self.speed_z)
 
     def wind_bestreference_ms(self):
